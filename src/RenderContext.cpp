@@ -14,19 +14,19 @@ RenderContainerNode* RenderContext::EnsureNode<ContainerNodeData>(NodeId id) {
     const std::uint16_t gen = ExtractGeneration(id);
 
     // Expand vector if needed
-    if (idx >= renderContainers_.size()) {
-        renderContainers_.resize(idx + 1);
-        containerGenerations_.resize(idx + 1, 0);
+    if (idx >= m_renderContainers.size()) {
+        m_renderContainers.resize(idx + 1);
+        m_containerGenerations.resize(idx + 1, 0);
     }
 
     // Check generation match
-    if (containerGenerations_[idx] != gen) {
+    if (m_containerGenerations[idx] != gen) {
         // Generation mismatch: reinitialize slot
-        renderContainers_[idx] = RenderContainerNode{};
-        containerGenerations_[idx] = gen;
+        m_renderContainers[idx] = RenderContainerNode{};
+        m_containerGenerations[idx] = gen;
     }
 
-    return &renderContainers_[idx];
+    return &m_renderContainers[idx];
 }
 
 // Template specialization for TextNodeData
@@ -36,19 +36,19 @@ RenderTextNode* RenderContext::EnsureNode<TextNodeData>(NodeId id) {
     const std::uint16_t gen = ExtractGeneration(id);
 
     // Expand vector if needed
-    if (idx >= renderTexts_.size()) {
-        renderTexts_.resize(idx + 1);
-        textGenerations_.resize(idx + 1, 0);
+    if (idx >= m_renderTexts.size()) {
+        m_renderTexts.resize(idx + 1);
+        m_textGenerations.resize(idx + 1, 0);
     }
 
     // Check generation match
-    if (textGenerations_[idx] != gen) {
+    if (m_textGenerations[idx] != gen) {
         // Generation mismatch: reinitialize slot
-        renderTexts_[idx] = RenderTextNode{};
-        textGenerations_[idx] = gen;
+        m_renderTexts[idx] = RenderTextNode{};
+        m_textGenerations[idx] = gen;
     }
 
-    return &renderTexts_[idx];
+    return &m_renderTexts[idx];
 }
 
 // Template specialization for ContainerNodeData
@@ -57,11 +57,11 @@ RenderContainerNode* RenderContext::TryGetNode<ContainerNodeData>(NodeId id) {
     const std::uint64_t idx = ExtractIndex(id);
     const std::uint16_t gen = ExtractGeneration(id);
 
-    if (idx >= renderContainers_.size() || containerGenerations_[idx] != gen) {
+    if (idx >= m_renderContainers.size() || m_containerGenerations[idx] != gen) {
         return nullptr;
     }
 
-    return &renderContainers_[idx];
+    return &m_renderContainers[idx];
 }
 
 // Template specialization for TextNodeData
@@ -70,29 +70,29 @@ RenderTextNode* RenderContext::TryGetNode<TextNodeData>(NodeId id) {
     const std::uint64_t idx = ExtractIndex(id);
     const std::uint16_t gen = ExtractGeneration(id);
 
-    if (idx >= renderTexts_.size() || textGenerations_[idx] != gen) {
+    if (idx >= m_renderTexts.size() || m_textGenerations[idx] != gen) {
         return nullptr;
     }
 
-    return &renderTexts_[idx];
+    return &m_renderTexts[idx];
 }
 
 // Template specialization for ContainerNodeData
 template <>
 void RenderContext::ProcessChanges<ContainerNodeData>() {
-	auto changes = changeBuffer_.Snapshot<ContainerNodeData>();
+	auto changes = m_changeBuffer.Snapshot<ContainerNodeData>();
 
 	for (auto& c : changes) {
 		if (c.deleted) {
 			const std::uint64_t idx = ExtractIndex(c.id);
-			nodeIdAllocator_.Free(c.id);
+			m_nodeIdAllocator.Free(c.id);
 
-			if (idx < containerGenerations_.size()) {
-				containerGenerations_[idx] = nodeIdAllocator_.GetGeneration(idx);
+			if (idx < m_containerGenerations.size()) {
+				m_containerGenerations[idx] = m_nodeIdAllocator.GetGeneration(idx);
 			}
 
-			if (idx < renderContainers_.size()) {
-				renderContainers_[idx] = RenderContainerNode{};
+			if (idx < m_renderContainers.size()) {
+				m_renderContainers[idx] = RenderContainerNode{};
 			}
 		} else {
 			c.Flush(*this);
@@ -103,19 +103,19 @@ void RenderContext::ProcessChanges<ContainerNodeData>() {
 // Template specialization for TextNodeData
 template <>
 void RenderContext::ProcessChanges<TextNodeData>() {
-	auto changes = changeBuffer_.Snapshot<TextNodeData>();
+	auto changes = m_changeBuffer.Snapshot<TextNodeData>();
 
 	for (auto& t : changes) {
 		if (t.deleted) {
 			const std::uint64_t idx = ExtractIndex(t.id);
-			nodeIdAllocator_.Free(t.id);
+			m_nodeIdAllocator.Free(t.id);
 
-			if (idx < textGenerations_.size()) {
-				textGenerations_[idx] = nodeIdAllocator_.GetGeneration(idx);
+			if (idx < m_textGenerations.size()) {
+				m_textGenerations[idx] = m_nodeIdAllocator.GetGeneration(idx);
 			}
 
-			if (idx < renderTexts_.size()) {
-				renderTexts_[idx] = RenderTextNode{};
+			if (idx < m_renderTexts.size()) {
+				m_renderTexts[idx] = RenderTextNode{};
 			}
 		} else {
 			t.Flush(*this);
@@ -124,7 +124,7 @@ void RenderContext::ProcessChanges<TextNodeData>() {
 }
 
 void RenderContext::Sync() {
-	std::lock_guard lock(renderMutex_);
+	std::lock_guard lock(m_renderMutex);
 
     TRACE_SCOPE("RenderContext::Sync");
 

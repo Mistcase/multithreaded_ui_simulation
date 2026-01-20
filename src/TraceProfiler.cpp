@@ -11,68 +11,68 @@ TraceProfiler& TraceProfiler::Instance() {
 }
 
 void TraceProfiler::BeginSession(const std::string& path) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    events_.clear();
-    filePath_ = path;
-    sessionStart_ = std::chrono::steady_clock::now();
-    sessionOpen_ = true;
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_events.clear();
+    m_filePath = path;
+    m_sessionStart = std::chrono::steady_clock::now();
+    m_sessionOpen = true;
 }
 
 void TraceProfiler::EndSession() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (!sessionOpen_) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (!m_sessionOpen) {
         return;
     }
     DumpToFile();
-    sessionOpen_ = false;
+    m_sessionOpen = false;
 }
 
 void TraceProfiler::RecordEvent(const char* name,
                                 std::uint64_t startUs,
                                 std::uint64_t durUs,
                                 std::uint64_t tid) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (!sessionOpen_) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (!m_sessionOpen) {
         return;
     }
-    events_.push_back(TraceEvent{std::string(name), startUs, durUs, tid});
+    m_events.push_back(TraceEvent{std::string(name), startUs, durUs, tid});
 }
 
 std::uint64_t TraceProfiler::NowSinceStartUs() const {
     const auto now = std::chrono::steady_clock::now();
     return static_cast<std::uint64_t>(
-        std::chrono::duration_cast<std::chrono::microseconds>(now - sessionStart_).count());
+        std::chrono::duration_cast<std::chrono::microseconds>(now - m_sessionStart).count());
 }
 
 std::uint64_t TraceProfiler::RegisterThread(const char* name) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(m_mutex);
     const auto id = std::this_thread::get_id();
-    auto it = threadMap_.find(id);
-    if (it != threadMap_.end()) {
+    auto it = m_threadMap.find(id);
+    if (it != m_threadMap.end()) {
         return it->second;
     }
-    const std::uint64_t tid = nextTid_++;
-    threadMap_[id] = tid;
-    if (sessionOpen_ && name) {
+    const std::uint64_t tid = m_nextTid++;
+    m_threadMap[id] = tid;
+    if (m_sessionOpen && name) {
         EmitThreadNameMetadata(tid, name);
     }
     return tid;
 }
 
 std::uint64_t TraceProfiler::CurrentThreadId() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(m_mutex);
     const auto id = std::this_thread::get_id();
-    auto it = threadMap_.find(id);
-    if (it != threadMap_.end()) {
+    auto it = m_threadMap.find(id);
+    if (it != m_threadMap.end()) {
         return it->second;
     }
-    const std::uint64_t tid = nextTid_++;
-    threadMap_[id] = tid;
+    const std::uint64_t tid = m_nextTid++;
+    m_threadMap[id] = tid;
     return tid;
 }
 
 void TraceProfiler::EmitThreadNameMetadata(std::uint64_t tid, const std::string& name) {
-    events_.push_back(TraceEvent{
+    m_events.push_back(TraceEvent{
         "thread_name",
         0,
         0,
@@ -83,14 +83,14 @@ void TraceProfiler::EmitThreadNameMetadata(std::uint64_t tid, const std::string&
 }
 
 void TraceProfiler::DumpToFile() {
-    std::ofstream out(filePath_, std::ios::trunc);
+    std::ofstream out(m_filePath, std::ios::trunc);
     if (!out.is_open()) {
         return;
     }
 
     out << "{ \"traceEvents\": [";
     bool first = true;
-    for (const auto& e : events_) {
+    for (const auto& e : m_events) {
         if (!first) {
             out << ",";
         }
@@ -117,21 +117,21 @@ void TraceProfiler::DumpToFile() {
 }
 
 TraceScope::TraceScope(const char* name)
-    : name_(name)
-    , begin_(std::chrono::steady_clock::now()) {
+    : m_name(name)
+    , m_begin(std::chrono::steady_clock::now()) {
 }
 
 TraceScope::~TraceScope() {
     const auto end = std::chrono::steady_clock::now();
     const auto endUs = TraceProfiler::Instance().NowSinceStartUs();
     const auto durUs =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - begin_).count();
+        std::chrono::duration_cast<std::chrono::microseconds>(end - m_begin).count();
     const auto startUs = (endUs > static_cast<std::uint64_t>(durUs))
                              ? endUs - static_cast<std::uint64_t>(durUs)
                              : 0;
     const auto tid = TraceProfiler::Instance().CurrentThreadId();
     TraceProfiler::Instance().RecordEvent(
-        name_, startUs, static_cast<std::uint64_t>(durUs), tid);
+        m_name, startUs, static_cast<std::uint64_t>(durUs), tid);
 }
 
 } // namespace ui

@@ -18,7 +18,7 @@ namespace ui {
 class FrontendNode {
 public:
     explicit FrontendNode(std::unique_ptr<TreeNode> backend)
-        : backend_(std::move(backend)) {}
+        : m_backend(std::move(backend)) {}
 
     virtual ~FrontendNode() {
         // Ensure backend node is properly terminated and freed even
@@ -27,26 +27,26 @@ public:
     }
 
     void SetPosition(float x, float y) {
-        if (backend_) {
-            backend_->SetPosition(x, y);
+        if (m_backend) {
+            m_backend->SetPosition(x, y);
         }
     }
 
     void SetVisible(bool v) {
-        if (backend_) {
-            backend_->SetVisible(v);
+        if (m_backend) {
+            m_backend->SetVisible(v);
         }
     }
 
     void Term() {
-        if (backend_) {
-            backend_->Term();
-            backend_.reset();  // Delete backend node
+        if (m_backend) {
+            m_backend->Term();
+            m_backend.reset();  // Delete backend node
         }
     }
 
 protected:
-    std::unique_ptr<TreeNode> backend_;
+    std::unique_ptr<TreeNode> m_backend;
 };
 
 class FrontendContainer : public FrontendNode {
@@ -59,7 +59,7 @@ public:
     void AddChild(NodeId childId);
 
 private:
-    BackendContainerNode* containerBackend_;  // Cached pointer to BackendContainerNode
+    BackendContainerNode* m_containerBackend;  // Cached pointer to BackendContainerNode
 };
 
 class FrontendText : public FrontendNode {
@@ -72,7 +72,7 @@ public:
     void SetText(const std::string& text);
 
 private:
-    BackendTextNode* textBackend_;  // Cached pointer to BackendTextNode
+    BackendTextNode* m_textBackend;  // Cached pointer to BackendTextNode
 };
 
 } // namespace ui

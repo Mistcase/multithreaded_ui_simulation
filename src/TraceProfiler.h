@@ -46,15 +46,15 @@ private:
     void DumpToFile();
     void EmitThreadNameMetadata(std::uint64_t tid, const std::string& name);
 
-    std::chrono::steady_clock::time_point sessionStart_{};
-    std::string filePath_;
-    bool sessionOpen_ = false;
+    std::chrono::steady_clock::time_point m_sessionStart{};
+    std::string m_filePath;
+    bool m_sessionOpen = false;
 
-    std::vector<TraceEvent> events_;
-    mutable std::mutex mutex_;
+    std::vector<TraceEvent> m_events;
+    mutable std::mutex m_mutex;
 
-    std::unordered_map<std::thread::id, std::uint64_t> threadMap_;
-    std::uint64_t nextTid_ = 0;
+    std::unordered_map<std::thread::id, std::uint64_t> m_threadMap;
+    std::uint64_t m_nextTid = 0;
 };
 
 class TraceScope {
@@ -63,8 +63,8 @@ public:
     ~TraceScope();
 
 private:
-    const char* name_;
-    std::chrono::steady_clock::time_point begin_;
+    const char* m_name;
+    std::chrono::steady_clock::time_point m_begin;
 };
 
 #define TRACE_SCOPE(name_literal) ::ui::TraceScope trace_scope_guard_##__LINE__{name_literal}

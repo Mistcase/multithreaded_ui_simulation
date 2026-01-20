@@ -17,22 +17,22 @@ namespace ui {
 class Movie {
 public:
     Movie()
-        : running_(true)
-        , rootId_(renderContext_.AllocateNodeId())  // Allocated by RenderContext
-        , textId_(renderContext_.AllocateNodeId()) {  // Allocated by RenderContext
+        : m_running(true)
+        , m_rootId(m_renderContext.AllocateNodeId())  // Allocated by RenderContext
+        , m_textId(m_renderContext.AllocateNodeId()) {  // Allocated by RenderContext
         // Frontend nodes create and own backend nodes
-        root_ = FrontendContainer::Create(rootId_, renderContext_);
-        text_ = FrontendText::Create(textId_, renderContext_);
+        m_root = FrontendContainer::Create(m_rootId, m_renderContext);
+        m_text = FrontendText::Create(m_textId, m_renderContext);
 
-        root_->AddChild(textId_);
+        m_root->AddChild(m_textId);
 
-        text_->SetText("Hello UI");
-        root_->SetPosition(0.0f, 0.0f);
-        text_->SetPosition(10.0f, 20.0f);
+        m_text->SetText("Hello UI");
+        m_root->SetPosition(0.0f, 0.0f);
+        m_text->SetPosition(10.0f, 20.0f);
     }
 
-    void Stop() { running_ = false; }
-    bool IsRunning() const { return running_.load(); }
+    void Stop() { m_running = false; }
+    bool IsRunning() const { return m_running.load(); }
 
     // main_thread: update
     void Update() {
@@ -44,23 +44,23 @@ public:
         static int frameCount = 0;
         frameCount++;
         x += 1.0f;
-        text_->SetPosition(x, 20.0f);
+        m_text->SetPosition(x, 20.0f);
         
         // Example: delete text node after 3 frames
-        if (frameCount == 3 && text_) {
-            text_->Term();
-            text_.reset();  // Clear frontend pointer
+        if (frameCount == 3 && m_text) {
+            m_text->Term();
+            m_text.reset();  // Clear frontend pointer
         }
 
         // At the end of update: sync buffer -> render tree
-        renderContext_.Sync();
+        m_renderContext.Sync();
     }
 
     // render_thread: render
     void Render() {
         TRACE_SCOPE("Movie::Render");
         {
-            std::lock_guard<std::mutex> lock(renderContext_.RenderMutex());
+            std::lock_guard<std::mutex> lock(m_renderContext.RenderMutex());
             CollectRenderCommands();
         }
 
@@ -76,7 +76,7 @@ public:
 private:
     void CollectRenderCommands() {
         TRACE_SCOPE("Movie::CollectRenderCommands");
-        auto* rootRender = renderContext_.TryGetNode<ContainerNodeData>(rootId_);
+        auto* rootRender = m_renderContext.TryGetNode<ContainerNodeData>(m_rootId);
         if (!rootRender) {
             return;
         }
@@ -90,14 +90,14 @@ private:
 
             for (NodeId childId : node->children) {
                 // Try container first (most common case for tree traversal)
-                const RenderContainerNode* container = renderContext_.TryGetNode<ContainerNodeData>(childId);
+                const RenderContainerNode* container = m_renderContext.TryGetNode<ContainerNodeData>(childId);
                 if (container) {
                     stack.push_back(container);
                     continue;
                 }
                 
                 // Try text node
-                const RenderTextNode* text = renderContext_.TryGetNode<TextNodeData>(childId);
+                const RenderTextNode* text = m_renderContext.TryGetNode<TextNodeData>(childId);
                 if (text) {
                     (void)text; // a real render command collection would go here
                 }
@@ -114,14 +114,14 @@ private:
     }
 
 private:
-    std::atomic<bool> running_;
+    std::atomic<bool> m_running;
 
-    RenderContext renderContext_;
-    NodeId rootId_;
-    NodeId textId_;
+    RenderContext m_renderContext;
+    NodeId m_rootId;
+    NodeId m_textId;
 
-    std::unique_ptr<FrontendContainer> root_;
-    std::unique_ptr<FrontendText> text_;
+    std::unique_ptr<FrontendContainer> m_root;
+    std::unique_ptr<FrontendText> m_text;
 };
 
 } // namespace ui

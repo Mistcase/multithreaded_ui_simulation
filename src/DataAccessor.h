@@ -17,27 +17,27 @@ public:
     static constexpr std::size_t VERSION_UNDEFINED = static_cast<std::size_t>(-1);
 
     DataAccessor(NodeId id, RenderContext& renderContext)
-        : id_(id)
-        , renderContext_(renderContext) {}
+        : m_id(id)
+        , m_renderContext(renderContext) {}
 
     DataT& AccessData() {
-        const auto currentVersion = renderContext_.Version();
-        if (lastVersion_ == currentVersion) {
-            assert(cached_);
-            return *cached_;
+        const auto currentVersion = m_renderContext.Version();
+        if (m_lastVersion == currentVersion) {
+            assert(m_cached);
+            return *m_cached;
         }
 
-        cached_ = &renderContext_.template AccessData<DataT>(id_);
-        lastVersion_ = currentVersion;
+        m_cached = &m_renderContext.template AccessData<DataT>(m_id);
+        m_lastVersion = currentVersion;
 
-        return *cached_;
+        return *m_cached;
     }
 
 private:
-    NodeId id_;
-    RenderContext& renderContext_;
-    DataT* cached_ = nullptr;
-    std::size_t lastVersion_ = VERSION_UNDEFINED;
+    NodeId m_id;
+    RenderContext& m_renderContext;
+    DataT* m_cached = nullptr;
+    std::size_t m_lastVersion = VERSION_UNDEFINED;
 };
 
 } // namespace ui

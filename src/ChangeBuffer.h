@@ -52,50 +52,50 @@ public:
         const std::size_t index = static_cast<std::size_t>(ExtractIndex(id));
 
         // Ensure storage is large enough for this handle index.
-        if (index >= items_.size()) {
-            items_.resize(index + 1);
-            dirty_.resize(index + 1, false);
+        if (index >= m_items.size()) {
+            m_items.resize(index + 1);
+            m_dirty.resize(index + 1, false);
         }
 
         // First access for this handle in the current frame: register in active list
         // and reset per-frame data to a clean state.
-        if (!dirty_[index]) {
-            dirty_[index] = true;
-            activeIndices_.push_back(index);
+        if (!m_dirty[index]) {
+            m_dirty[index] = true;
+            m_activeIndices.push_back(index);
 
             // Reinitialize per-frame data for this node.
-            items_[index] = T{};
-            items_[index].id = id;
+            m_items[index] = T{};
+            m_items[index].id = id;
         }
 
-        return items_[index];
+        return m_items[index];
     }
 
     std::vector<T> SnapshotAndClear() {
         std::vector<T> out;
-        out.reserve(activeIndices_.size());
+        out.reserve(m_activeIndices.size());
 
         // Collect only nodes that were actually touched in this frame.
-        for (std::size_t index : activeIndices_) {
-            out.push_back(std::move(items_[index]));
+        for (std::size_t index : m_activeIndices) {
+            out.push_back(std::move(m_items[index]));
 
             // Reset slot state for the next frame.
-            items_[index] = T{}; // TODO: Just to default value?
-            dirty_[index] = false;
+            m_items[index] = T{}; // TODO: Just to default value?
+            m_dirty[index] = false;
         }
 
-        activeIndices_.clear();
+        m_activeIndices.clear();
         return out;
     }
 
-    bool Empty() const { return activeIndices_.empty(); }
+    bool Empty() const { return m_activeIndices.empty(); }
 
 private:
-    std::vector<T> items_;
+    std::vector<T> m_items;
     // Marks which indices were modified in the current frame.
-    std::vector<bool> dirty_;
+    std::vector<bool> m_dirty;
     // Compact list of indices that were touched in the current frame.
-    std::vector<std::size_t> activeIndices_;
+    std::vector<std::size_t> m_activeIndices;
 };
 
 // ---------------------------------
@@ -114,7 +114,7 @@ public:
 
     bool Empty() const;
 
-    std::size_t Version() const { return version_; }
+    std::size_t Version() const { return m_version; }
 
 private:
     // Static method to get TypeBuffer for a specific type
@@ -124,7 +124,7 @@ private:
         return buffer;
     }
 
-    std::size_t version_ = 0; // Need it for fast DataAccessor validation
+    std::size_t m_version = 0; // Need it for fast DataAccessor validation
 };
 
 // Template method implementations
@@ -135,7 +135,7 @@ inline T& ChangeBuffer::AccessData(NodeId id) {
 
 template <typename T>
 inline std::vector<T> ChangeBuffer::Snapshot() {
-    ++version_;
+    ++m_version;
     return Buffer<T>().SnapshotAndClear();
 }
 

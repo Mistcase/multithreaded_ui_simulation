@@ -12,20 +12,20 @@ class RenderContext;
 class TreeNode {
 public:
     TreeNode(NodeId id, RenderContext& renderContext)
-        : id_(id)
-        , renderContext_(renderContext) {}
+        : m_id(id)
+        , m_renderContext(renderContext) {}
 
     virtual ~TreeNode() = default;
 
-    NodeId Id() const { return id_; }
+    NodeId Id() const { return m_id; }
 
     virtual void SetPosition(float x, float y) = 0;
     virtual void SetVisible(bool v) = 0;
     virtual void Term() = 0;
 
 protected:
-    NodeId id_;
-    RenderContext& renderContext_;
+    NodeId m_id;
+    RenderContext& m_renderContext;
 };
 
 } // namespace ui

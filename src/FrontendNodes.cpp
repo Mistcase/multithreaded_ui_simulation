@@ -11,11 +11,11 @@ std::unique_ptr<FrontendContainer> FrontendContainer::Create(NodeId id, RenderCo
 
 FrontendContainer::FrontendContainer(std::unique_ptr<BackendContainerNode> backend)
     : FrontendNode(std::move(backend))
-    , containerBackend_(static_cast<BackendContainerNode*>(FrontendNode::backend_.get())) {}
+    , m_containerBackend(static_cast<BackendContainerNode*>(FrontendNode::m_backend.get())) {}
 
 void FrontendContainer::AddChild(NodeId childId) {
-    if (containerBackend_) {
-        containerBackend_->AddChild(childId);
+    if (m_containerBackend) {
+        m_containerBackend->AddChild(childId);
     }
 }
 
@@ -26,11 +26,11 @@ std::unique_ptr<FrontendText> FrontendText::Create(NodeId id, RenderContext& ctx
 
 FrontendText::FrontendText(std::unique_ptr<BackendTextNode> backend)
     : FrontendNode(std::move(backend))
-    , textBackend_(static_cast<BackendTextNode*>(FrontendNode::backend_.get())) {}
+    , m_textBackend(static_cast<BackendTextNode*>(FrontendNode::m_backend.get())) {}
 
 void FrontendText::SetText(const std::string& text) {
-    if (textBackend_) {
-        textBackend_->SetText(text);
+    if (m_textBackend) {
+        m_textBackend->SetText(text);
     }
 }
 

@@ -18,22 +18,22 @@ public:
     NodeId Allocate() {
         std::uint64_t index;
         
-        if (!freeIndices_.empty()) {
+        if (!m_freeIndices.empty()) {
             // Reuse freed index
-            index = freeIndices_.back();
-            freeIndices_.pop_back();
+            index = m_freeIndices.back();
+            m_freeIndices.pop_back();
         } else {
             // Allocate new index
-            index = nextIndex_++;
+            index = m_nextIndex++;
         }
         
         // Ensure vectors are large enough
-        if (index >= generations_.size()) {
-            generations_.resize(index + 1, 0);
+        if (index >= m_generations.size()) {
+            m_generations.resize(index + 1, 0);
         }
         
         // Return handle with current generation (should be 0 for new slots)
-        return MakeNodeId(index, generations_[index]);
+        return MakeNodeId(index, m_generations[index]);
     }
 
     // Free a NodeId (called when node is deleted)
@@ -42,36 +42,36 @@ public:
         const std::uint64_t idx = ExtractIndex(id);
         const std::uint16_t gen = ExtractGeneration(id);
         
-        if (idx >= generations_.size()) {
+        if (idx >= m_generations.size()) {
             return;  // Invalid index
         }
         
         // Check generation match (safety check)
-        if (generations_[idx] != gen) {
+        if (m_generations[idx] != gen) {
             return;  // Already freed or invalid
         }
         
         // Increment generation to invalidate all existing handles
         // Note: & 0xFFFF is redundant for uint16_t (overflow is well-defined wrap-around),
         // but kept for explicitness and type safety if generation type changes
-        generations_[idx] = (gen + 1) & 0xFFFF;
+        m_generations[idx] = (gen + 1) & 0xFFFF;
         
         // Add to free list for reuse
-        freeIndices_.push_back(idx);
+        m_freeIndices.push_back(idx);
     }
 
     // Get current generation for an index (for validation)
     std::uint16_t GetGeneration(std::uint64_t index) const {
-        if (index >= generations_.size()) {
+        if (index >= m_generations.size()) {
             return 0;
         }
-        return generations_[index];
+        return m_generations[index];
     }
 
 private:
-    std::uint64_t nextIndex_ = 0;  // Next index to allocate
-    std::vector<std::uint16_t> generations_;  // Generation per index
-    std::vector<std::uint64_t> freeIndices_;  // Free list for reuse
+    std::uint64_t m_nextIndex = 0;  // Next index to allocate
+    std::vector<std::uint16_t> m_generations;  // Generation per index
+    std::vector<std::uint64_t> m_freeIndices;  // Free list for reuse
 };
 
 } // namespace ui
