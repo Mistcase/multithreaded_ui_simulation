@@ -32,3 +32,6 @@ trace.json
 
 # Logs
 *.log
+
+# Tooling caches
+.cache/
