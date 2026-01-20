@@ -1,0 +1,115 @@
+#pragma once
+
+#include "ui_ids.h"
+
+#include <cstddef>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+namespace ui {
+
+class RenderContext;
+struct RenderContainerNode;
+struct RenderTextNode;
+
+// ----------------------------
+// Update-side (write) NodeData
+// No virtuals and no base class hierarchy
+// ----------------------------
+
+struct ChildLink {
+    NodeId id{};
+    bool isText = false;
+};
+
+struct ContainerNodeData {
+    NodeId id{};
+    float x = 0.0f;
+    float y = 0.0f;
+    bool visible = true;
+    bool deleted = false;  // Mark for deletion
+    std::vector<ChildLink> children;
+    RenderContainerNode* render = nullptr;
+
+    void Flush(RenderContext& ctx);
+};
+
+struct TextNodeData {
+    NodeId id{};
+    float x = 0.0f;
+    float y = 0.0f;
+    bool visible = true;
+    bool deleted = false;  // Mark for deletion
+    std::string text;
+    RenderTextNode* render = nullptr;
+
+    void Flush(RenderContext& ctx);
+};
+
+template <class T>
+class TypeBuffer {
+public:
+    T& AccessData(NodeId id) {
+        auto it = idToIndex_.find(id);
+        if (it != idToIndex_.end()) {
+            return items_[it->second];
+        }
+        const std::size_t index = items_.size();
+        items_.emplace_back();
+        items_.back().id = id;
+        idToIndex_[id] = index;
+        return items_.back();
+    }
+
+    std::vector<T> SnapshotAndClear() {
+        std::vector<T> out = std::move(items_);
+        items_.clear();
+        idToIndex_.clear();
+        return out;
+    }
+
+    bool Empty() const { return items_.empty(); }
+
+private:
+    std::vector<T> items_;
+    std::unordered_map<NodeId, std::size_t> idToIndex_;
+};
+
+// ---------------------------------
+// ChangeBuffer: stores batched changes per type
+// ---------------------------------
+
+class ChangeBuffer {
+public:
+    ContainerNodeData& AccessContainerData(NodeId id) {
+        return containers_.AccessData(id);
+    }
+
+    TextNodeData& AccessTextData(NodeId id) {
+        return texts_.AccessData(id);
+    }
+
+    std::vector<ContainerNodeData> SnapshotContainers() {
+        ++version_;
+        return containers_.SnapshotAndClear();
+    }
+
+    std::vector<TextNodeData> SnapshotTexts() {
+        ++version_;
+        return texts_.SnapshotAndClear();
+    }
+
+    bool Empty() const {
+        return containers_.Empty() && texts_.Empty();
+    }
+
+    std::size_t Version() const { return version_; }
+
+private:
+    TypeBuffer<ContainerNodeData> containers_;
+    TypeBuffer<TextNodeData> texts_;
+    std::size_t version_ = 0;
+};
+
+} // namespace ui
