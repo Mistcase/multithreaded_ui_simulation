@@ -10,6 +10,8 @@
 namespace ui {
     class BackendContainerNode;
     class BackendTextNode;
+    class BackendShapeNode;
+    class BackendShapeRectNode;
 }
 
 namespace ui {
@@ -73,6 +75,31 @@ public:
 
 private:
     BackendTextNode* m_textBackend;  // Cached pointer to BackendTextNode
+};
+
+class FrontendShape : public FrontendNode {
+public:
+    // Factory method: creates backend and frontend, returns frontend
+    static std::unique_ptr<FrontendShape> Create(NodeId id);
+    
+    explicit FrontendShape(std::unique_ptr<BackendShapeNode> backend);
+
+private:
+    BackendShapeNode* m_shapeBackend;  // Cached pointer to BackendShapeNode
+};
+
+class FrontendShapeRect : public FrontendShape {
+public:
+    // Factory method: creates backend and frontend, returns frontend
+    static std::unique_ptr<FrontendShapeRect> Create(NodeId id);
+    
+    explicit FrontendShapeRect(std::unique_ptr<BackendShapeRectNode> backend);
+    
+    void SetWidth(float width);
+    void SetHeight(float height);
+
+private:
+    BackendShapeRectNode* m_shapeRectBackend;  // Cached pointer to BackendShapeRectNode
 };
 
 } // namespace ui

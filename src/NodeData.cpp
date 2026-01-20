@@ -25,4 +25,24 @@ void TextNodeData::Flush(RenderContext& ctx) {
     r->text = text;
 }
 
+void ShapeNodeData::Flush(RenderContext& ctx) {
+    auto& renderContext = RenderContext::Instance();
+    RenderShapeNode* r = render ? render : renderContext.EnsureRenderNode<ShapeNodeData>(id);
+    render = r;
+    r->x = x;
+    r->y = y;
+    r->visible = visible;
+}
+
+void ShapeRectNodeData::Flush(RenderContext& ctx) {
+    auto& renderContext = RenderContext::Instance();
+    RenderShapeRectNode* r = render ? render : renderContext.EnsureRenderNode<ShapeRectNodeData>(id);
+    render = r;
+    r->x = x;
+    r->y = y;
+    r->visible = visible;
+    r->width = width;
+    r->height = height;
+}
+
 } // namespace ui

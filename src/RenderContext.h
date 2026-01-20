@@ -19,6 +19,8 @@ namespace ui {
 
 struct RenderContainerNode;
 struct RenderTextNode;
+struct RenderShapeNode;
+struct RenderShapeRectNode;
 
 struct RenderContainerNode {
     float x = 0.0f;
@@ -34,6 +36,20 @@ struct RenderTextNode {
     std::string text;
 };
 
+struct RenderShapeNode {
+    float x = 0.0f;
+    float y = 0.0f;
+    bool visible = true;
+};
+
+struct RenderShapeRectNode {
+    float x = 0.0f;
+    float y = 0.0f;
+    bool visible = true;
+    float width = 0.0f;
+    float height = 0.0f;
+};
+
 // Traits for mapping NodeData types to RenderNode types and storage
 template <typename T>
 struct RenderNodeTraits;
@@ -46,6 +62,16 @@ struct RenderNodeTraits<ContainerNodeData> {
 template <>
 struct RenderNodeTraits<TextNodeData> {
     using RenderNodeType = RenderTextNode;
+};
+
+template <>
+struct RenderNodeTraits<ShapeNodeData> {
+    using RenderNodeType = RenderShapeNode;
+};
+
+template <>
+struct RenderNodeTraits<ShapeRectNodeData> {
+    using RenderNodeType = RenderShapeRectNode;
 };
 
 // ---------------------------------

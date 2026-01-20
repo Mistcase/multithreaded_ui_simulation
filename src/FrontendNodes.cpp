@@ -1,6 +1,8 @@
 #include "FrontendNodes.h"
 #include "BackendContainerNode.h"
 #include "BackendTextNode.h"
+#include "BackendShapeNode.h"
+#include "BackendShapeRectNode.h"
 
 namespace ui {
 
@@ -31,6 +33,36 @@ FrontendText::FrontendText(std::unique_ptr<BackendTextNode> backend)
 void FrontendText::SetText(const std::string& text) {
     if (m_textBackend) {
         m_textBackend->SetText(text);
+    }
+}
+
+std::unique_ptr<FrontendShape> FrontendShape::Create(NodeId id) {
+    auto backend = std::make_unique<BackendShapeNode>(id);
+    return std::make_unique<FrontendShape>(std::move(backend));
+}
+
+FrontendShape::FrontendShape(std::unique_ptr<BackendShapeNode> backend)
+    : FrontendNode(std::move(backend))
+    , m_shapeBackend(static_cast<BackendShapeNode*>(FrontendNode::m_backend.get())) {}
+
+std::unique_ptr<FrontendShapeRect> FrontendShapeRect::Create(NodeId id) {
+    auto backend = std::make_unique<BackendShapeRectNode>(id);
+    return std::make_unique<FrontendShapeRect>(std::move(backend));
+}
+
+FrontendShapeRect::FrontendShapeRect(std::unique_ptr<BackendShapeRectNode> backend)
+    : FrontendShape(std::unique_ptr<BackendShapeNode>(backend.release()))
+    , m_shapeRectBackend(static_cast<BackendShapeRectNode*>(FrontendNode::m_backend.get())) {}
+
+void FrontendShapeRect::SetWidth(float width) {
+    if (m_shapeRectBackend) {
+        m_shapeRectBackend->SetWidth(width);
+    }
+}
+
+void FrontendShapeRect::SetHeight(float height) {
+    if (m_shapeRectBackend) {
+        m_shapeRectBackend->SetHeight(height);
     }
 }
 

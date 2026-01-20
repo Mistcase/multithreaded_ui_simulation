@@ -10,6 +10,8 @@ namespace ui {
 class RenderContext;
 struct RenderContainerNode;
 struct RenderTextNode;
+struct RenderShapeNode;
+struct RenderShapeRectNode;
 
 // ----------------------------
 // Update-side (write) NodeData
@@ -36,6 +38,30 @@ struct TextNodeData {
     bool deleted = false;  // Mark for deletion
     std::string text;
     RenderTextNode* render = nullptr;
+
+    void Flush(RenderContext& ctx);
+};
+
+struct ShapeNodeData {
+    NodeId id{};
+    float x = 0.0f;
+    float y = 0.0f;
+    bool visible = true;
+    bool deleted = false;  // Mark for deletion
+    RenderShapeNode* render = nullptr;
+
+    void Flush(RenderContext& ctx);
+};
+
+struct ShapeRectNodeData {
+    NodeId id{};
+    float x = 0.0f;
+    float y = 0.0f;
+    bool visible = true;
+    bool deleted = false;  // Mark for deletion
+    float width = 0.0f;
+    float height = 0.0f;
+    RenderShapeRectNode* render = nullptr;
 
     void Flush(RenderContext& ctx);
 };

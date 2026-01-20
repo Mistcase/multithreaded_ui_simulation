@@ -36,6 +36,8 @@ void RenderContext::Sync() {
 	// Process all types using template method
 	ProcessChanges<ContainerNodeData>();
 	ProcessChanges<TextNodeData>();
+	ProcessChanges<ShapeNodeData>();
+	ProcessChanges<ShapeRectNodeData>();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(400));
 }
