@@ -10,62 +10,62 @@ namespace ui {
 RenderContainerNode* RenderContext::EnsureContainerNode(NodeId id) {
     const std::uint64_t idx = ExtractIndex(id);
     const std::uint16_t gen = ExtractGeneration(id);
-    
+
     // Expand vector if needed
     if (idx >= renderContainers_.size()) {
         renderContainers_.resize(idx + 1);
         containerGenerations_.resize(idx + 1, 0);
     }
-    
+
     // Check generation match
     if (containerGenerations_[idx] != gen) {
         // Generation mismatch: reinitialize slot
         renderContainers_[idx] = RenderContainerNode{};
         containerGenerations_[idx] = gen;
     }
-    
+
     return &renderContainers_[idx];
 }
 
 RenderTextNode* RenderContext::EnsureTextNode(NodeId id) {
     const std::uint64_t idx = ExtractIndex(id);
     const std::uint16_t gen = ExtractGeneration(id);
-    
+
     // Expand vector if needed
     if (idx >= renderTexts_.size()) {
         renderTexts_.resize(idx + 1);
         textGenerations_.resize(idx + 1, 0);
     }
-    
+
     // Check generation match
     if (textGenerations_[idx] != gen) {
         // Generation mismatch: reinitialize slot
         renderTexts_[idx] = RenderTextNode{};
         textGenerations_[idx] = gen;
     }
-    
+
     return &renderTexts_[idx];
 }
 
 RenderContainerNode* RenderContext::TryGetContainer(NodeId id) {
     const std::uint64_t idx = ExtractIndex(id);
     const std::uint16_t gen = ExtractGeneration(id);
-    
+
     if (idx >= renderContainers_.size() || containerGenerations_[idx] != gen) {
         return nullptr;
     }
-    
+
     return &renderContainers_[idx];
 }
 
 RenderTextNode* RenderContext::TryGetText(NodeId id) {
     const std::uint64_t idx = ExtractIndex(id);
     const std::uint16_t gen = ExtractGeneration(id);
-    
+
     if (idx >= renderTexts_.size() || textGenerations_[idx] != gen) {
         return nullptr;
     }
-    
+
     return &renderTexts_[idx];
 }
 
@@ -91,12 +91,12 @@ void RenderContext::Sync() {
 			// Node was deleted: free NodeId (increments generation) and clear render node
 			const std::uint64_t idx = ExtractIndex(c.id);
 			nodeIdAllocator_.Free(c.id);  // Increments generation, adds to free list
-			
+
 			// Sync generation to our local storage
 			if (idx < containerGenerations_.size()) {
 				containerGenerations_[idx] = nodeIdAllocator_.GetGeneration(idx);
 			}
-			
+
 			// Clear render node
 			if (idx < renderContainers_.size()) {
 				renderContainers_[idx] = RenderContainerNode{};
@@ -105,19 +105,19 @@ void RenderContext::Sync() {
 			c.Flush(*this);
 		}
 	}
-	
+
 	// Process text changes
 	for (auto& t : textChanges) {
 		if (t.deleted) {
 			// Node was deleted: free NodeId (increments generation) and clear render node
 			const std::uint64_t idx = ExtractIndex(t.id);
 			nodeIdAllocator_.Free(t.id);  // Increments generation, adds to free list
-			
+
 			// Sync generation to our local storage
 			if (idx < textGenerations_.size()) {
 				textGenerations_[idx] = nodeIdAllocator_.GetGeneration(idx);
 			}
-			
+
 			// Clear render node
 			if (idx < renderTexts_.size()) {
 				renderTexts_[idx] = RenderTextNode{};
@@ -137,18 +137,23 @@ void ContainerNodeData::Flush(RenderContext& ctx) {
     r->y = y;
     r->visible = visible;
 
-    r->children.clear();
-    r->children.reserve(children.size());
-    for (const auto& child : children) {
-        RenderChildPtr out;
+    // Resize to target size, reusing existing capacity when possible
+    r->children.resize(children.size());
+
+    // Update children in place to avoid unnecessary allocations
+    for (std::size_t i = 0; i < children.size(); ++i) {
+        const auto& child = children[i];
+        RenderChildPtr& out = r->children[i];
+
         out.isText = child.isText;
         out.id = child.id;
         if (child.isText) {
             out.text = ctx.EnsureTextNode(child.id);
+            out.container = nullptr;  // Clear container pointer if it was set
         } else {
             out.container = ctx.EnsureContainerNode(child.id);
+            out.text = nullptr;  // Clear text pointer if it was set
         }
-        r->children.push_back(out);
     }
 }
 
