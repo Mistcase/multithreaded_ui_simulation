@@ -188,7 +188,22 @@ private:
 
     // Template method to process changes for any type
     template <typename T>
-    void ProcessChanges();
+    void ProcessChanges() {
+        auto changes = m_changeBuffer.Snapshot<T>();
+
+        for (auto& change : changes) {
+            if (change.deleted) {
+                const std::uint64_t idx = ExtractIndex(change.id);
+                m_nodeIdAllocator.Free(change.id);
+
+                // Remove render node
+                Storage<T>().ClearNode(idx, m_nodeIdAllocator.GetGeneration(idx));
+                continue;
+            }
+
+            change.Flush(*this);
+        }
+    }
 
     // Register type handler for automatic processing in Sync()
     // Uses static variable to ensure registration happens only once per type

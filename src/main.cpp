@@ -30,8 +30,21 @@ int main() {
         }
     });
 
-    std::this_thread::sleep_for(std::chrono::seconds(5)); // collect several frames for trace
-    running = false;
+    // Main thread: process window events (required on macOS)
+    auto startTime = std::chrono::steady_clock::now();
+    while (running && movie.IsRunning()) {
+        movie.ProcessEvents();
+        
+        // Check if 5 seconds have passed
+        auto elapsed = std::chrono::steady_clock::now() - startTime;
+        if (std::chrono::duration_cast<std::chrono::seconds>(elapsed).count() >= 5) {
+            running = false;
+            break;
+        }
+        
+        std::this_thread::sleep_for(std::chrono::milliseconds(16)); // ~60 Hz for event processing
+    }
+
     movie.Stop();
 
     updateThread.join();
