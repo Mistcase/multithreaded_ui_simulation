@@ -6,6 +6,7 @@
 #include "NodeIdAllocator.h"
 
 #include <cstdint>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -150,8 +151,10 @@ public:
     }
 
     // Update thread API: access write-side data for any type
+    // Automatically registers ProcessChanges<T> handler on first access
     template <typename T>
     T& AccessData(NodeId id) {
+        RegisterTypeHandler<T>();
         return m_changeBuffer.AccessData<T>(id);
     }
 
@@ -187,9 +190,33 @@ private:
     template <typename T>
     void ProcessChanges();
 
+    // Register type handler for automatic processing in Sync()
+    // Uses static variable to ensure registration happens only once per type
+    template <typename T>
+    void RegisterTypeHandler() {
+        static bool registered = []() {
+            // Register handler - will be added to instance's handler list
+            // Note: Since this is called from instance method, Instance() is safe
+            RenderContext& instance = Instance();
+            instance.m_typeHandlers.push_back([](RenderContext* ctx) {
+                ctx->ProcessChanges<T>();
+            });
+            return true;
+        }();
+        (void)registered; // Suppress unused variable warning
+    }
+
+    // Call all registered type handlers
+    void ProcessAllRegisteredTypes() {
+        for (auto& handler : m_typeHandlers) {
+            handler(this);
+        }
+    }
+
     ChangeBuffer m_changeBuffer;
     NodeIdAllocator m_nodeIdAllocator;
     std::mutex m_renderMutex;
+    std::vector<std::function<void(RenderContext*)>> m_typeHandlers;
 };
 
 } // namespace ui

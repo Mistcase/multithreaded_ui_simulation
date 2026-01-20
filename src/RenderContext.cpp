@@ -33,11 +33,9 @@ void RenderContext::Sync() {
 
     TRACE_SCOPE("RenderContext::Sync");
 
-	// Process all types using template method
-	ProcessChanges<ContainerNodeData>();
-	ProcessChanges<TextNodeData>();
-	ProcessChanges<ShapeNodeData>();
-	ProcessChanges<ShapeRectNodeData>();
+	// Process all types that were accessed via AccessData<T>
+	// Handlers are automatically registered on first AccessData<T> call
+	ProcessAllRegisteredTypes();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(400));
 }
