@@ -8,8 +8,8 @@
 
 // Forward declarations
 namespace ui {
-    class ContainerNode;
-    class TextNode;
+    class BackendContainerNode;
+    class BackendTextNode;
 }
 
 namespace ui {
@@ -54,12 +54,12 @@ public:
     // Factory method: creates backend and frontend, returns frontend
     static std::unique_ptr<FrontendContainer> Create(NodeId id, RenderContext& ctx);
     
-    explicit FrontendContainer(std::unique_ptr<ContainerNode> backend);
+    explicit FrontendContainer(std::unique_ptr<BackendContainerNode> backend);
     
-    void AddChild(NodeId childId, bool isText);
+    void AddChild(NodeId childId);
 
 private:
-    ContainerNode* containerBackend_;  // Cached pointer to ContainerNode
+    BackendContainerNode* containerBackend_;  // Cached pointer to BackendContainerNode
 };
 
 class FrontendText : public FrontendNode {
@@ -67,12 +67,12 @@ public:
     // Factory method: creates backend and frontend, returns frontend
     static std::unique_ptr<FrontendText> Create(NodeId id, RenderContext& ctx);
     
-    explicit FrontendText(std::unique_ptr<TextNode> backend);
+    explicit FrontendText(std::unique_ptr<BackendTextNode> backend);
     
     void SetText(const std::string& text);
 
 private:
-    TextNode* textBackend_;  // Cached pointer to TextNode
+    BackendTextNode* textBackend_;  // Cached pointer to BackendTextNode
 };
 
 } // namespace ui

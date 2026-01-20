@@ -33,6 +33,20 @@ struct RenderTextNode {
     std::string text;
 };
 
+// Traits for mapping NodeData types to RenderNode types and storage
+template <typename T>
+struct RenderNodeTraits;
+
+template <>
+struct RenderNodeTraits<ContainerNodeData> {
+    using RenderNodeType = RenderContainerNode;
+};
+
+template <>
+struct RenderNodeTraits<TextNodeData> {
+    using RenderNodeType = RenderTextNode;
+};
+
 // RenderContext: owns ChangeBuffer and render tree
 
 class RenderContext {
@@ -44,13 +58,18 @@ public:
         return nodeIdAllocator_.Allocate();
     }
 
-    // Update thread API: access write-side data for a concrete type
-    ContainerNodeData& AccessContainerData(NodeId id);
-    TextNodeData& AccessTextData(NodeId id);
+    // Update thread API: access write-side data for any type
+    template <typename T>
+    T& AccessData(NodeId id) {
+        return changeBuffer_.AccessData<T>(id);
+    }
 
-    RenderContainerNode* EnsureContainerNode(NodeId id);
-    RenderTextNode* EnsureTextNode(NodeId id);
-    RenderTextNode* TryGetText(NodeId id);
+    // Template methods for accessing render nodes by NodeData type
+    template <typename T>
+    auto EnsureNode(NodeId id) -> typename RenderNodeTraits<T>::RenderNodeType*;
+
+    template <typename T>
+    auto TryGetNode(NodeId id) -> typename RenderNodeTraits<T>::RenderNodeType*;
 
     // Update thread: called at the end of update
     // Under render mutex: applies changes to render tree.
@@ -62,9 +81,12 @@ public:
     std::mutex& RenderMutex() { return renderMutex_; }
     const std::vector<RenderContainerNode>& RenderContainers() const { return renderContainers_; }
     const std::vector<RenderTextNode>& RenderTexts() const { return renderTexts_; }
-    RenderContainerNode* TryGetContainer(NodeId id);
 
 private:
+    // Template method to process changes for any type
+    template <typename T>
+    void ProcessChanges();
+
     ChangeBuffer changeBuffer_;
     NodeIdAllocator nodeIdAllocator_;
     std::mutex renderMutex_;

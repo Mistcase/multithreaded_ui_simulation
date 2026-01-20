@@ -19,7 +19,6 @@ struct RenderTextNode;
 
 struct ChildLink {
     NodeId id{};
-    bool isText = false;
 };
 
 struct ContainerNodeData {
@@ -81,7 +80,7 @@ public:
             out.push_back(std::move(items_[index]));
 
             // Reset slot state for the next frame.
-            items_[index] = T{};
+            items_[index] = T{}; // TODO: Just to default value?
             dirty_[index] = false;
         }
 
@@ -105,34 +104,45 @@ private:
 
 class ChangeBuffer {
 public:
-    ContainerNodeData& AccessContainerData(NodeId id) {
-        return containers_.AccessData(id);
-    }
+    // Template method to access data for any type
+    template <typename T>
+    T& AccessData(NodeId id);
 
-    TextNodeData& AccessTextData(NodeId id) {
-        return texts_.AccessData(id);
-    }
+    // Template method to snapshot and clear data for any type
+    template <typename T>
+    std::vector<T> Snapshot();
 
-    std::vector<ContainerNodeData> SnapshotContainers() {
-        ++version_;
-        return containers_.SnapshotAndClear();
-    }
-
-    std::vector<TextNodeData> SnapshotTexts() {
-        ++version_;
-        return texts_.SnapshotAndClear();
-    }
-
-    bool Empty() const {
-        return containers_.Empty() && texts_.Empty();
-    }
+    bool Empty() const;
 
     std::size_t Version() const { return version_; }
 
 private:
-    TypeBuffer<ContainerNodeData> containers_;
-    TypeBuffer<TextNodeData> texts_;
-    std::size_t version_ = 0;
+    // Static method to get TypeBuffer for a specific type
+    template <typename T>
+    static TypeBuffer<T>& Buffer() {
+        static TypeBuffer<T> buffer;
+        return buffer;
+    }
+
+    std::size_t version_ = 0; // Need it for fast DataAccessor validation
 };
+
+// Template method implementations
+template <typename T>
+inline T& ChangeBuffer::AccessData(NodeId id) {
+    return Buffer<T>().AccessData(id);
+}
+
+template <typename T>
+inline std::vector<T> ChangeBuffer::Snapshot() {
+    ++version_;
+    return Buffer<T>().SnapshotAndClear();
+}
+
+inline bool ChangeBuffer::Empty() const {
+    // Check known types - this is a limitation of static approach
+    // but avoids type erasure
+    return Buffer<ContainerNodeData>().Empty() && Buffer<TextNodeData>().Empty();
+}
 
 } // namespace ui

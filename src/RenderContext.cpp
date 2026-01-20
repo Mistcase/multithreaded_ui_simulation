@@ -7,7 +7,9 @@
 
 namespace ui {
 
-RenderContainerNode* RenderContext::EnsureContainerNode(NodeId id) {
+// Template specialization for ContainerNodeData
+template <>
+RenderContainerNode* RenderContext::EnsureNode<ContainerNodeData>(NodeId id) {
     const std::uint64_t idx = ExtractIndex(id);
     const std::uint16_t gen = ExtractGeneration(id);
 
@@ -27,7 +29,9 @@ RenderContainerNode* RenderContext::EnsureContainerNode(NodeId id) {
     return &renderContainers_[idx];
 }
 
-RenderTextNode* RenderContext::EnsureTextNode(NodeId id) {
+// Template specialization for TextNodeData
+template <>
+RenderTextNode* RenderContext::EnsureNode<TextNodeData>(NodeId id) {
     const std::uint64_t idx = ExtractIndex(id);
     const std::uint16_t gen = ExtractGeneration(id);
 
@@ -47,7 +51,9 @@ RenderTextNode* RenderContext::EnsureTextNode(NodeId id) {
     return &renderTexts_[idx];
 }
 
-RenderContainerNode* RenderContext::TryGetContainer(NodeId id) {
+// Template specialization for ContainerNodeData
+template <>
+RenderContainerNode* RenderContext::TryGetNode<ContainerNodeData>(NodeId id) {
     const std::uint64_t idx = ExtractIndex(id);
     const std::uint16_t gen = ExtractGeneration(id);
 
@@ -58,7 +64,9 @@ RenderContainerNode* RenderContext::TryGetContainer(NodeId id) {
     return &renderContainers_[idx];
 }
 
-RenderTextNode* RenderContext::TryGetText(NodeId id) {
+// Template specialization for TextNodeData
+template <>
+RenderTextNode* RenderContext::TryGetNode<TextNodeData>(NodeId id) {
     const std::uint64_t idx = ExtractIndex(id);
     const std::uint16_t gen = ExtractGeneration(id);
 
@@ -69,35 +77,20 @@ RenderTextNode* RenderContext::TryGetText(NodeId id) {
     return &renderTexts_[idx];
 }
 
-ContainerNodeData& RenderContext::AccessContainerData(NodeId id) {
-    return changeBuffer_.AccessContainerData(id);
-}
+// Template specialization for ContainerNodeData
+template <>
+void RenderContext::ProcessChanges<ContainerNodeData>() {
+	auto changes = changeBuffer_.Snapshot<ContainerNodeData>();
 
-TextNodeData& RenderContext::AccessTextData(NodeId id) {
-    return changeBuffer_.AccessTextData(id);
-}
-
-void RenderContext::Sync() {
-	std::lock_guard lock(renderMutex_);
-
-    TRACE_SCOPE("RenderContext::Sync");
-
-	auto containerChanges = changeBuffer_.SnapshotContainers();
-	auto textChanges = changeBuffer_.SnapshotTexts();
-
-	// Process container changes
-	for (auto& c : containerChanges) {
+	for (auto& c : changes) {
 		if (c.deleted) {
-			// Node was deleted: free NodeId (increments generation) and clear render node
 			const std::uint64_t idx = ExtractIndex(c.id);
-			nodeIdAllocator_.Free(c.id);  // Increments generation, adds to free list
+			nodeIdAllocator_.Free(c.id);
 
-			// Sync generation to our local storage
 			if (idx < containerGenerations_.size()) {
 				containerGenerations_[idx] = nodeIdAllocator_.GetGeneration(idx);
 			}
 
-			// Clear render node
 			if (idx < renderContainers_.size()) {
 				renderContainers_[idx] = RenderContainerNode{};
 			}
@@ -105,20 +98,22 @@ void RenderContext::Sync() {
 			c.Flush(*this);
 		}
 	}
+}
 
-	// Process text changes
-	for (auto& t : textChanges) {
+// Template specialization for TextNodeData
+template <>
+void RenderContext::ProcessChanges<TextNodeData>() {
+	auto changes = changeBuffer_.Snapshot<TextNodeData>();
+
+	for (auto& t : changes) {
 		if (t.deleted) {
-			// Node was deleted: free NodeId (increments generation) and clear render node
 			const std::uint64_t idx = ExtractIndex(t.id);
-			nodeIdAllocator_.Free(t.id);  // Increments generation, adds to free list
+			nodeIdAllocator_.Free(t.id);
 
-			// Sync generation to our local storage
 			if (idx < textGenerations_.size()) {
 				textGenerations_[idx] = nodeIdAllocator_.GetGeneration(idx);
 			}
 
-			// Clear render node
 			if (idx < renderTexts_.size()) {
 				renderTexts_[idx] = RenderTextNode{};
 			}
@@ -126,12 +121,22 @@ void RenderContext::Sync() {
 			t.Flush(*this);
 		}
 	}
+}
+
+void RenderContext::Sync() {
+	std::lock_guard lock(renderMutex_);
+
+    TRACE_SCOPE("RenderContext::Sync");
+
+	// Process all types using template method
+	ProcessChanges<ContainerNodeData>();
+	ProcessChanges<TextNodeData>();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(400));
 }
 
 void ContainerNodeData::Flush(RenderContext& ctx) {
-    RenderContainerNode* r = render ? render : ctx.EnsureContainerNode(id);
+    RenderContainerNode* r = render ? render : ctx.EnsureNode<ContainerNodeData>(id);
     render = r;
     r->x = x;
     r->y = y;
@@ -147,7 +152,7 @@ void ContainerNodeData::Flush(RenderContext& ctx) {
 }
 
 void TextNodeData::Flush(RenderContext& ctx) {
-    RenderTextNode* r = render ? render : ctx.EnsureTextNode(id);
+    RenderTextNode* r = render ? render : ctx.EnsureNode<TextNodeData>(id);
     render = r;
     r->x = x;
     r->y = y;

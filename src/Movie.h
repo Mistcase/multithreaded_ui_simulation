@@ -1,8 +1,8 @@
 #pragma once
 
 #include "RenderContext.h"
-#include "ContainerNode.h"
-#include "TextNode.h"
+#include "BackendContainerNode.h"
+#include "BackendTextNode.h"
 #include "FrontendNodes.h"
 #include "TraceProfiler.h"
 
@@ -24,7 +24,7 @@ public:
         root_ = FrontendContainer::Create(rootId_, renderContext_);
         text_ = FrontendText::Create(textId_, renderContext_);
 
-        root_->AddChild(textId_, true);  // isText = true
+        root_->AddChild(textId_);
 
         text_->SetText("Hello UI");
         root_->SetPosition(0.0f, 0.0f);
@@ -76,7 +76,7 @@ public:
 private:
     void CollectRenderCommands() {
         TRACE_SCOPE("Movie::CollectRenderCommands");
-        auto* rootRender = renderContext_.TryGetContainer(rootId_);
+        auto* rootRender = renderContext_.TryGetNode<ContainerNodeData>(rootId_);
         if (!rootRender) {
             return;
         }
@@ -90,14 +90,14 @@ private:
 
             for (NodeId childId : node->children) {
                 // Try container first (most common case for tree traversal)
-                const RenderContainerNode* container = renderContext_.TryGetContainer(childId);
+                const RenderContainerNode* container = renderContext_.TryGetNode<ContainerNodeData>(childId);
                 if (container) {
                     stack.push_back(container);
                     continue;
                 }
                 
                 // Try text node
-                const RenderTextNode* text = renderContext_.TryGetText(childId);
+                const RenderTextNode* text = renderContext_.TryGetNode<TextNodeData>(childId);
                 if (text) {
                     (void)text; // a real render command collection would go here
                 }

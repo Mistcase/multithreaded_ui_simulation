@@ -4,18 +4,17 @@
 #include "RenderContext.h"
 #include "ChangeBuffer.h"
 #include "DataAccessor.h"
-#include "TextNode.h" // for RTTI type check
 
 #include <memory>
-#include <vector>
+#include <string>
 
 namespace ui {
 
-using ContainerDataAccessor = DataAccessor<RenderContext, ContainerNodeData, &RenderContext::AccessContainerData>;
+using TextDataAccessor = DataAccessor<TextNodeData>;
 
-class ContainerNode : public TreeNode {
+class BackendTextNode : public TreeNode {
 public:
-    ContainerNode(NodeId id, RenderContext& ctx)
+    BackendTextNode(NodeId id, RenderContext& ctx)
         : TreeNode(id, ctx)
         , data_(id, ctx) {}
 
@@ -30,9 +29,9 @@ public:
         data.visible = v;
     }
 
-    void AddChild(NodeId childId, bool isText) {
+    void SetText(const std::string& text) {
         auto& data = data_.AccessData();
-        data.children.push_back(ChildLink{childId, isText});
+        data.text = text;
     }
 
     void Term() override {
@@ -43,8 +42,7 @@ public:
     }
 
 private:
-    ContainerDataAccessor data_;
+    TextDataAccessor data_;
 };
 
 } // namespace ui
-

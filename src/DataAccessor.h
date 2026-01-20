@@ -7,25 +7,27 @@
 
 namespace ui {
 
+class RenderContext;
+
 // Generic accessor for write-side NodeData.
 // Caches a pointer to data and invalidates it by ChangeBuffer/RenderContext version.
-template <class BufferT, class DataT, DataT& (BufferT::*AccessFn)(NodeId)>
+template <class DataT>
 class DataAccessor {
 public:
     static constexpr std::size_t VERSION_UNDEFINED = static_cast<std::size_t>(-1);
 
-    DataAccessor(NodeId id, BufferT& buffer)
+    DataAccessor(NodeId id, RenderContext& renderContext)
         : id_(id)
-        , buffer_(buffer) {}
+        , renderContext_(renderContext) {}
 
     DataT& AccessData() {
-        const auto currentVersion = buffer_.Version();
+        const auto currentVersion = renderContext_.Version();
         if (lastVersion_ == currentVersion) {
             assert(cached_);
             return *cached_;
         }
 
-        cached_ = &(buffer_.*AccessFn)(id_);
+        cached_ = &renderContext_.template AccessData<DataT>(id_);
         lastVersion_ = currentVersion;
 
         return *cached_;
@@ -33,7 +35,7 @@ public:
 
 private:
     NodeId id_;
-    BufferT& buffer_;
+    RenderContext& renderContext_;
     DataT* cached_ = nullptr;
     std::size_t lastVersion_ = VERSION_UNDEFINED;
 };

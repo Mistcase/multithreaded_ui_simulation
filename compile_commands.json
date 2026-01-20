@@ -1,9 +1,21 @@
 [
 {
   "directory": "/Users/admin/dev/projects/ui_sandbox/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++   -g -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk -o CMakeFiles/ui_sandbox.dir/src/FrontendNodes.cpp.o -c /Users/admin/dev/projects/ui_sandbox/src/FrontendNodes.cpp",
+  "file": "/Users/admin/dev/projects/ui_sandbox/src/FrontendNodes.cpp",
+  "output": "CMakeFiles/ui_sandbox.dir/src/FrontendNodes.cpp.o"
+},
+{
+  "directory": "/Users/admin/dev/projects/ui_sandbox/build",
   "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++   -g -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk -o CMakeFiles/ui_sandbox.dir/src/RenderContext.cpp.o -c /Users/admin/dev/projects/ui_sandbox/src/RenderContext.cpp",
   "file": "/Users/admin/dev/projects/ui_sandbox/src/RenderContext.cpp",
   "output": "CMakeFiles/ui_sandbox.dir/src/RenderContext.cpp.o"
+},
+{
+  "directory": "/Users/admin/dev/projects/ui_sandbox/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++   -g -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk -o CMakeFiles/ui_sandbox.dir/src/TraceProfiler.cpp.o -c /Users/admin/dev/projects/ui_sandbox/src/TraceProfiler.cpp",
+  "file": "/Users/admin/dev/projects/ui_sandbox/src/TraceProfiler.cpp",
+  "output": "CMakeFiles/ui_sandbox.dir/src/TraceProfiler.cpp.o"
 },
 {
   "directory": "/Users/admin/dev/projects/ui_sandbox/build",
