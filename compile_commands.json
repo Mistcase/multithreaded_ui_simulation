@@ -7,6 +7,12 @@
 },
 {
   "directory": "/Users/admin/dev/projects/ui_sandbox/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++   -g -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk -o CMakeFiles/ui_sandbox.dir/src/NodeData.cpp.o -c /Users/admin/dev/projects/ui_sandbox/src/NodeData.cpp",
+  "file": "/Users/admin/dev/projects/ui_sandbox/src/NodeData.cpp",
+  "output": "CMakeFiles/ui_sandbox.dir/src/NodeData.cpp.o"
+},
+{
+  "directory": "/Users/admin/dev/projects/ui_sandbox/build",
   "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++   -g -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk -o CMakeFiles/ui_sandbox.dir/src/RenderContext.cpp.o -c /Users/admin/dev/projects/ui_sandbox/src/RenderContext.cpp",
   "file": "/Users/admin/dev/projects/ui_sandbox/src/RenderContext.cpp",
   "output": "CMakeFiles/ui_sandbox.dir/src/RenderContext.cpp.o"

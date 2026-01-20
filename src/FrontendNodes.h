@@ -52,7 +52,7 @@ protected:
 class FrontendContainer : public FrontendNode {
 public:
     // Factory method: creates backend and frontend, returns frontend
-    static std::unique_ptr<FrontendContainer> Create(NodeId id, RenderContext& ctx);
+    static std::unique_ptr<FrontendContainer> Create(NodeId id);
     
     explicit FrontendContainer(std::unique_ptr<BackendContainerNode> backend);
     
@@ -65,7 +65,7 @@ private:
 class FrontendText : public FrontendNode {
 public:
     // Factory method: creates backend and frontend, returns frontend
-    static std::unique_ptr<FrontendText> Create(NodeId id, RenderContext& ctx);
+    static std::unique_ptr<FrontendText> Create(NodeId id);
     
     explicit FrontendText(std::unique_ptr<BackendTextNode> backend);
     

@@ -3,47 +3,13 @@
 #include "ui_ids.h"
 
 #include <cstddef>
-#include <string>
 #include <vector>
 
 namespace ui {
 
-class RenderContext;
-struct RenderContainerNode;
-struct RenderTextNode;
-
-// ----------------------------
-// Update-side (write) NodeData
-// No virtuals and no base class hierarchy
-// ----------------------------
-
-struct ChildLink {
-    NodeId id{};
-};
-
-struct ContainerNodeData {
-    NodeId id{};
-    float x = 0.0f;
-    float y = 0.0f;
-    bool visible = true;
-    bool deleted = false;  // Mark for deletion
-    std::vector<ChildLink> children;
-    RenderContainerNode* render = nullptr;
-
-    void Flush(RenderContext& ctx);
-};
-
-struct TextNodeData {
-    NodeId id{};
-    float x = 0.0f;
-    float y = 0.0f;
-    bool visible = true;
-    bool deleted = false;  // Mark for deletion
-    std::string text;
-    RenderTextNode* render = nullptr;
-
-    void Flush(RenderContext& ctx);
-};
+// Forward declarations
+struct ContainerNodeData;
+struct TextNodeData;
 
 template <class T>
 class TypeBuffer {
@@ -106,13 +72,17 @@ class ChangeBuffer {
 public:
     // Template method to access data for any type
     template <typename T>
-    T& AccessData(NodeId id);
+    T& AccessData(NodeId id)
+	{
+		return Buffer<T>().AccessData(id);
+	}
 
     // Template method to snapshot and clear data for any type
     template <typename T>
-    std::vector<T> Snapshot();
-
-    bool Empty() const;
+    std::vector<T> Snapshot()
+	{
+		return Buffer<T>().SnapshotAndClear();
+	}
 
 private:
     // Static method to get TypeBuffer for a specific type
@@ -123,22 +93,5 @@ private:
     }
 };
 
-
-// Template method implementations
-template <typename T>
-inline T& ChangeBuffer::AccessData(NodeId id) {
-    return Buffer<T>().AccessData(id);
-}
-
-template <typename T>
-inline std::vector<T> ChangeBuffer::Snapshot() {
-    return Buffer<T>().SnapshotAndClear();
-}
-
-inline bool ChangeBuffer::Empty() const {
-    // Check known types - this is a limitation of static approach
-    // but avoids type erasure
-    return Buffer<ContainerNodeData>().Empty() && Buffer<TextNodeData>().Empty();
-}
 
 } // namespace ui

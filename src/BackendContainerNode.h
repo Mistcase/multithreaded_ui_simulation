@@ -2,7 +2,7 @@
 
 #include "TreeNode.h"
 #include "RenderContext.h"
-#include "ChangeBuffer.h"
+#include "NodeData.h"
 #include "BackendTextNode.h" // for RTTI type check
 
 #include <memory>
@@ -12,29 +12,29 @@ namespace ui {
 
 class BackendContainerNode : public TreeNode {
 public:
-    BackendContainerNode(NodeId id, RenderContext& ctx)
-        : TreeNode(id, ctx) {}
+    explicit BackendContainerNode(NodeId id)
+        : TreeNode(id) {}
 
     void SetPosition(float x, float y) override {
-        auto& data = m_renderContext.AccessData<ContainerNodeData>(m_id);
+        auto& data = RenderContext::Instance().AccessData<ContainerNodeData>(m_id);
         data.x = x;
         data.y = y;
     }
 
     void SetVisible(bool v) override {
-        auto& data = m_renderContext.AccessData<ContainerNodeData>(m_id);
+        auto& data = RenderContext::Instance().AccessData<ContainerNodeData>(m_id);
         data.visible = v;
     }
 
     void AddChild(NodeId childId) {
-        auto& data = m_renderContext.AccessData<ContainerNodeData>(m_id);
-        data.children.push_back(ChildLink{childId});
+        auto& data = RenderContext::Instance().AccessData<ContainerNodeData>(m_id);
+        data.children.push_back(childId);
     }
 
     void Term() override {
         // Mark node as deleted in ChangeBuffer
         // On Sync, the render node will be removed
-        auto& data = m_renderContext.AccessData<ContainerNodeData>(m_id);
+        auto& data = RenderContext::Instance().AccessData<ContainerNodeData>(m_id);
         data.deleted = true;
     }
 };

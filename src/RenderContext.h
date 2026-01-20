@@ -2,6 +2,7 @@
 
 #include "ui_ids.h"
 #include "ChangeBuffer.h"
+#include "NodeData.h"
 #include "NodeIdAllocator.h"
 
 #include <cstdint>
@@ -103,10 +104,19 @@ private:
 };
 
 // RenderContext: owns ChangeBuffer and render tree
+// Singleton pattern - single instance for the entire application
 
 class RenderContext {
 public:
-    RenderContext() = default;
+    // Get singleton instance
+    static RenderContext& Instance() {
+        static RenderContext instance;
+        return instance;
+    }
+
+    // Delete copy constructor and assignment operator
+    RenderContext(const RenderContext&) = delete;
+    RenderContext& operator=(const RenderContext&) = delete;
 
     // Allocate new NodeId (delegates to allocator)
     NodeId AllocateNodeId() {
@@ -138,6 +148,8 @@ public:
     std::mutex& RenderMutex() { return m_renderMutex; }
 
 private:
+    // Private constructor for singleton
+    RenderContext() = default;
     // Static method to get TypeStorage for a specific type
     template <typename T>
     static TypeStorage<typename RenderNodeTraits<T>::RenderNodeType>& Storage() {

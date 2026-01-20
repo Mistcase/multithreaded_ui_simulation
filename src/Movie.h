@@ -18,11 +18,11 @@ class Movie {
 public:
     Movie()
         : m_running(true)
-        , m_rootId(m_renderContext.AllocateNodeId())  // Allocated by RenderContext
-        , m_textId(m_renderContext.AllocateNodeId()) {  // Allocated by RenderContext
+        , m_rootId(RenderContext::Instance().AllocateNodeId())  // Allocated by RenderContext
+        , m_textId(RenderContext::Instance().AllocateNodeId()) {  // Allocated by RenderContext
         // Frontend nodes create and own backend nodes
-        m_root = FrontendContainer::Create(m_rootId, m_renderContext);
-        m_text = FrontendText::Create(m_textId, m_renderContext);
+        m_root = FrontendContainer::Create(m_rootId);
+        m_text = FrontendText::Create(m_textId);
 
         m_root->AddChild(m_textId);
 
@@ -53,14 +53,14 @@ public:
         }
 
         // At the end of update: sync buffer -> render tree
-        m_renderContext.Sync();
+        RenderContext::Instance().Sync();
     }
 
     // render_thread: render
     void Render() {
         TRACE_SCOPE("Movie::Render");
         {
-            std::lock_guard<std::mutex> lock(m_renderContext.RenderMutex());
+            std::lock_guard<std::mutex> lock(RenderContext::Instance().RenderMutex());
             CollectRenderCommands();
         }
 
@@ -76,7 +76,8 @@ public:
 private:
     void CollectRenderCommands() {
         TRACE_SCOPE("Movie::CollectRenderCommands");
-        auto* rootRender = m_renderContext.TryGetRenderNode<ContainerNodeData>(m_rootId);
+        auto& ctx = RenderContext::Instance();
+        auto* rootRender = ctx.TryGetRenderNode<ContainerNodeData>(m_rootId);
         if (!rootRender) {
             return;
         }
@@ -90,14 +91,14 @@ private:
 
             for (NodeId childId : node->children) {
                 // Try container first (most common case for tree traversal)
-                const RenderContainerNode* container = m_renderContext.TryGetRenderNode<ContainerNodeData>(childId);
+                const RenderContainerNode* container = ctx.TryGetRenderNode<ContainerNodeData>(childId);
                 if (container) {
                     stack.push_back(container);
                     continue;
                 }
-
+                
                 // Try text node
-                const RenderTextNode* text = m_renderContext.TryGetRenderNode<TextNodeData>(childId);
+                const RenderTextNode* text = ctx.TryGetRenderNode<TextNodeData>(childId);
                 if (text) {
                     (void)text; // a real render command collection would go here
                 }
@@ -116,7 +117,6 @@ private:
 private:
     std::atomic<bool> m_running;
 
-    RenderContext m_renderContext;
     NodeId m_rootId;
     NodeId m_textId;
 

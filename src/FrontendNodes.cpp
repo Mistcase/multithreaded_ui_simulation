@@ -4,8 +4,8 @@
 
 namespace ui {
 
-std::unique_ptr<FrontendContainer> FrontendContainer::Create(NodeId id, RenderContext& ctx) {
-    auto backend = std::make_unique<BackendContainerNode>(id, ctx);
+std::unique_ptr<FrontendContainer> FrontendContainer::Create(NodeId id) {
+    auto backend = std::make_unique<BackendContainerNode>(id);
     return std::make_unique<FrontendContainer>(std::move(backend));
 }
 
@@ -19,8 +19,8 @@ void FrontendContainer::AddChild(NodeId childId) {
     }
 }
 
-std::unique_ptr<FrontendText> FrontendText::Create(NodeId id, RenderContext& ctx) {
-    auto backend = std::make_unique<BackendTextNode>(id, ctx);
+std::unique_ptr<FrontendText> FrontendText::Create(NodeId id) {
+    auto backend = std::make_unique<BackendTextNode>(id);
     return std::make_unique<FrontendText>(std::move(backend));
 }
 

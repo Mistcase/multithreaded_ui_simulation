@@ -6,14 +6,11 @@
 
 namespace ui {
 
-class RenderContext;
-
 // Backend node (base)
 class TreeNode {
 public:
-    TreeNode(NodeId id, RenderContext& renderContext)
-        : m_id(id)
-        , m_renderContext(renderContext) {}
+    explicit TreeNode(NodeId id)
+        : m_id(id) {}
 
     virtual ~TreeNode() = default;
 
@@ -25,7 +22,6 @@ public:
 
 protected:
     NodeId m_id;
-    RenderContext& m_renderContext;
 };
 
 } // namespace ui
