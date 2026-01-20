@@ -20,7 +20,11 @@ public:
     explicit FrontendNode(std::unique_ptr<TreeNode> backend)
         : backend_(std::move(backend)) {}
 
-    virtual ~FrontendNode() = default;
+    virtual ~FrontendNode() {
+        // Ensure backend node is properly terminated and freed even
+        // if the owner forgets to call Term() explicitly.
+        Term();
+    }
 
     void SetPosition(float x, float y) {
         if (backend_) {
