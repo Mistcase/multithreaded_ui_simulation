@@ -1,9 +1,16 @@
 #pragma once
 
 #include "TreeNode.h"
-#include "TextNode.h"
+#include "ui_ids.h"
 
 #include <memory>
+#include <string>
+
+// Forward declarations
+namespace ui {
+    class ContainerNode;
+    class TextNode;
+}
 
 namespace ui {
 
@@ -40,21 +47,25 @@ protected:
 
 class FrontendContainer : public FrontendNode {
 public:
-    explicit FrontendContainer(std::unique_ptr<ContainerNode> backend)
-        : FrontendNode(std::move(backend)) {}
+    // Factory method: creates backend and frontend, returns frontend
+    static std::unique_ptr<FrontendContainer> Create(NodeId id, RenderContext& ctx);
+    
+    explicit FrontendContainer(std::unique_ptr<ContainerNode> backend);
+    
+    void AddChild(NodeId childId, bool isText);
+
+private:
+    ContainerNode* containerBackend_;  // Cached pointer to ContainerNode
 };
 
 class FrontendText : public FrontendNode {
 public:
-    explicit FrontendText(std::unique_ptr<TextNode> backend)
-        : FrontendNode(std::move(backend))
-        , textBackend_(static_cast<TextNode*>(FrontendNode::backend_.get())) {}
-
-    void SetText(const std::string& text) {
-        if (textBackend_) {
-            textBackend_->SetText(text);
-        }
-    }
+    // Factory method: creates backend and frontend, returns frontend
+    static std::unique_ptr<FrontendText> Create(NodeId id, RenderContext& ctx);
+    
+    explicit FrontendText(std::unique_ptr<TextNode> backend);
+    
+    void SetText(const std::string& text);
 
 private:
     TextNode* textBackend_;  // Cached pointer to TextNode

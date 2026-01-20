@@ -20,14 +20,11 @@ public:
         : running_(true)
         , rootId_(renderContext_.AllocateNodeId())  // Allocated by RenderContext
         , textId_(renderContext_.AllocateNodeId()) {  // Allocated by RenderContext
-        // Create backend nodes
-        auto rootBackend = std::make_unique<ContainerNode>(rootId_, renderContext_);
-        auto textBackend = std::make_unique<TextNode>(textId_, renderContext_);
+        // Frontend nodes create and own backend nodes
+        root_ = FrontendContainer::Create(rootId_, renderContext_);
+        text_ = FrontendText::Create(textId_, renderContext_);
 
-        rootBackend->AddChild(textId_, true);  // isText = true
-
-        root_ = std::make_unique<FrontendContainer>(std::move(rootBackend));
-        text_ = std::make_unique<FrontendText>(std::move(textBackend));
+        root_->AddChild(textId_, true);  // isText = true
 
         text_->SetText("Hello UI");
         root_->SetPosition(0.0f, 0.0f);
