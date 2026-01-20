@@ -140,20 +140,9 @@ void ContainerNodeData::Flush(RenderContext& ctx) {
     // Resize to target size, reusing existing capacity when possible
     r->children.resize(children.size());
 
-    // Update children in place to avoid unnecessary allocations
+    // Update children in place - store only NodeId
     for (std::size_t i = 0; i < children.size(); ++i) {
-        const auto& child = children[i];
-        RenderChildPtr& out = r->children[i];
-
-        out.isText = child.isText;
-        out.id = child.id;
-        if (child.isText) {
-            out.text = ctx.EnsureTextNode(child.id);
-            out.container = nullptr;  // Clear container pointer if it was set
-        } else {
-            out.container = ctx.EnsureContainerNode(child.id);
-            out.text = nullptr;  // Clear text pointer if it was set
-        }
+        r->children[i] = children[i].id;
     }
 }
 

@@ -88,22 +88,20 @@ private:
             const RenderContainerNode* node = stack.back();
             stack.pop_back();
 
-            for (const auto& ch : node->children) {
-                if (ch.isText) {
-                    // Validate pointer: check if node still exists (generation match)
-                    const RenderTextNode* t = renderContext_.TryGetText(ch.id);
-                    if (t) {
-                        (void)t; // a real render command collection would go here
-                    }
-                    // If nullptr: node was deleted, skip it
-                } else {
-                    // Validate pointer: check if node still exists (generation match)
-                    const RenderContainerNode* c = renderContext_.TryGetContainer(ch.id);
-                    if (c) {
-                        stack.push_back(c);
-                    }
-                    // If nullptr: node was deleted, skip it
+            for (NodeId childId : node->children) {
+                // Try container first (most common case for tree traversal)
+                const RenderContainerNode* container = renderContext_.TryGetContainer(childId);
+                if (container) {
+                    stack.push_back(container);
+                    continue;
                 }
+                
+                // Try text node
+                const RenderTextNode* text = renderContext_.TryGetText(childId);
+                if (text) {
+                    (void)text; // a real render command collection would go here
+                }
+                // If both are nullptr: node was deleted, skip it
             }
         }
 

@@ -19,18 +19,11 @@ namespace ui {
 struct RenderContainerNode;
 struct RenderTextNode;
 
-struct RenderChildPtr {
-    bool isText = false;
-    RenderContainerNode* container = nullptr;
-    RenderTextNode* text = nullptr;
-    NodeId id{};
-};
-
 struct RenderContainerNode {
     float x = 0.0f;
     float y = 0.0f;
     bool visible = true;
-    std::vector<RenderChildPtr> children;
+    std::vector<NodeId> children;  // Store only NodeId, resolve type dynamically
 };
 
 struct RenderTextNode {
@@ -45,7 +38,7 @@ struct RenderTextNode {
 class RenderContext {
 public:
     RenderContext() = default;
-    
+
     // Allocate new NodeId (delegates to allocator)
     NodeId AllocateNodeId() {
         return nodeIdAllocator_.Allocate();
@@ -75,15 +68,14 @@ private:
     ChangeBuffer changeBuffer_;
     NodeIdAllocator nodeIdAllocator_;
     std::mutex renderMutex_;
-    
+
     // Handle-based storage: direct vector access by index, generation check for validation
     // Generations are synced with NodeIdAllocator::generations_
     std::vector<RenderContainerNode> renderContainers_;
     std::vector<std::uint16_t> containerGenerations_;  // generation per slot
-    
+
     std::vector<RenderTextNode> renderTexts_;
     std::vector<std::uint16_t> textGenerations_;  // generation per slot
 };
 
 } // namespace ui
-
