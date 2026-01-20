@@ -47,6 +47,61 @@ struct RenderNodeTraits<TextNodeData> {
     using RenderNodeType = RenderTextNode;
 };
 
+// ---------------------------------
+// TypeStorage: stores render nodes per type
+// Similar to TypeBuffer but for render-side (read-only) data
+// ---------------------------------
+
+template <class RenderNodeType>
+class TypeStorage {
+public:
+    RenderNodeType* EnsureRenderNode(NodeId id) {
+        const std::uint64_t idx = ExtractIndex(id);
+        const std::uint16_t gen = ExtractGeneration(id);
+
+        // Expand vector if needed
+        if (idx >= m_nodes.size()) {
+            m_nodes.resize(idx + 1);
+            m_generations.resize(idx + 1, 0);
+        }
+
+        // Check generation match
+        if (m_generations[idx] != gen) {
+            // Generation mismatch: reinitialize slot
+            m_nodes[idx] = RenderNodeType{};
+            m_generations[idx] = gen;
+        }
+
+        return &m_nodes[idx];
+    }
+
+    RenderNodeType* TryGetRenderNode(NodeId id) {
+        const std::uint64_t idx = ExtractIndex(id);
+        const std::uint16_t gen = ExtractGeneration(id);
+
+        if (idx >= m_nodes.size() || m_generations[idx] != gen) {
+            return nullptr;
+        }
+
+        return &m_nodes[idx];
+    }
+
+    void ClearNode(std::uint64_t idx, std::uint16_t newGeneration) {
+        if (idx < m_generations.size()) {
+            m_generations[idx] = newGeneration;
+        }
+        if (idx < m_nodes.size()) {
+            m_nodes[idx] = RenderNodeType{};
+        }
+    }
+
+    const std::vector<RenderNodeType>& GetNodes() const { return m_nodes; }
+
+private:
+    std::vector<RenderNodeType> m_nodes;
+    std::vector<std::uint16_t> m_generations;  // generation per slot
+};
+
 // RenderContext: owns ChangeBuffer and render tree
 
 class RenderContext {
@@ -66,23 +121,30 @@ public:
 
     // Template methods for accessing render nodes by NodeData type
     template <typename T>
-    auto EnsureNode(NodeId id) -> typename RenderNodeTraits<T>::RenderNodeType*;
+    auto EnsureRenderNode(NodeId id) -> typename RenderNodeTraits<T>::RenderNodeType* {
+        return Storage<T>().EnsureRenderNode(id);
+    }
 
     template <typename T>
-    auto TryGetNode(NodeId id) -> typename RenderNodeTraits<T>::RenderNodeType*;
+    auto TryGetRenderNode(NodeId id) -> typename RenderNodeTraits<T>::RenderNodeType* {
+        return Storage<T>().TryGetRenderNode(id);
+    }
 
     // Update thread: called at the end of update
     // Under render mutex: applies changes to render tree.
     void Sync();
 
-    std::size_t Version() const { return m_changeBuffer.Version(); }
-
     // Render thread: read-only access to render tree under render mutex
     std::mutex& RenderMutex() { return m_renderMutex; }
-    const std::vector<RenderContainerNode>& RenderContainers() const { return m_renderContainers; }
-    const std::vector<RenderTextNode>& RenderTexts() const { return m_renderTexts; }
 
 private:
+    // Static method to get TypeStorage for a specific type
+    template <typename T>
+    static TypeStorage<typename RenderNodeTraits<T>::RenderNodeType>& Storage() {
+        static TypeStorage<typename RenderNodeTraits<T>::RenderNodeType> storage;
+        return storage;
+    }
+
     // Template method to process changes for any type
     template <typename T>
     void ProcessChanges();
@@ -90,14 +152,6 @@ private:
     ChangeBuffer m_changeBuffer;
     NodeIdAllocator m_nodeIdAllocator;
     std::mutex m_renderMutex;
-
-    // Handle-based storage: direct vector access by index, generation check for validation
-    // Generations are synced with NodeIdAllocator::m_generations
-    std::vector<RenderContainerNode> m_renderContainers;
-    std::vector<std::uint16_t> m_containerGenerations;  // generation per slot
-
-    std::vector<RenderTextNode> m_renderTexts;
-    std::vector<std::uint16_t> m_textGenerations;  // generation per slot
 };
 
 } // namespace ui

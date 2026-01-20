@@ -45,7 +45,7 @@ public:
         frameCount++;
         x += 1.0f;
         m_text->SetPosition(x, 20.0f);
-        
+
         // Example: delete text node after 3 frames
         if (frameCount == 3 && m_text) {
             m_text->Term();
@@ -76,7 +76,7 @@ public:
 private:
     void CollectRenderCommands() {
         TRACE_SCOPE("Movie::CollectRenderCommands");
-        auto* rootRender = m_renderContext.TryGetNode<ContainerNodeData>(m_rootId);
+        auto* rootRender = m_renderContext.TryGetRenderNode<ContainerNodeData>(m_rootId);
         if (!rootRender) {
             return;
         }
@@ -90,14 +90,14 @@ private:
 
             for (NodeId childId : node->children) {
                 // Try container first (most common case for tree traversal)
-                const RenderContainerNode* container = m_renderContext.TryGetNode<ContainerNodeData>(childId);
+                const RenderContainerNode* container = m_renderContext.TryGetRenderNode<ContainerNodeData>(childId);
                 if (container) {
                     stack.push_back(container);
                     continue;
                 }
-                
+
                 // Try text node
-                const RenderTextNode* text = m_renderContext.TryGetNode<TextNodeData>(childId);
+                const RenderTextNode* text = m_renderContext.TryGetRenderNode<TextNodeData>(childId);
                 if (text) {
                     (void)text; // a real render command collection would go here
                 }

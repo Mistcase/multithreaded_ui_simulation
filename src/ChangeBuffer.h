@@ -114,8 +114,6 @@ public:
 
     bool Empty() const;
 
-    std::size_t Version() const { return m_version; }
-
 private:
     // Static method to get TypeBuffer for a specific type
     template <typename T>
@@ -123,9 +121,8 @@ private:
         static TypeBuffer<T> buffer;
         return buffer;
     }
-
-    std::size_t m_version = 0; // Need it for fast DataAccessor validation
 };
+
 
 // Template method implementations
 template <typename T>
@@ -135,7 +132,6 @@ inline T& ChangeBuffer::AccessData(NodeId id) {
 
 template <typename T>
 inline std::vector<T> ChangeBuffer::Snapshot() {
-    ++m_version;
     return Buffer<T>().SnapshotAndClear();
 }
 
