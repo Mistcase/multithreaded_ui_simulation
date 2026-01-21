@@ -1,25 +1,44 @@
 #include "OpenGLRenderer.h"
 
+// Platform-specific OpenGL includes
+// We try to keep include order and macros friendly for Windows/MSVC.
+
+#ifdef _WIN32
+// Ensure Windows types/macros (APIENTRY, WINGDIAPI, etc.) are defined
+// before OpenGL headers on Windows.
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
+#endif
+
 #ifdef USE_GLFW
-#ifdef __APPLE__
-// On macOS, include OpenGL Core Profile headers before GLFW
-// This ensures all OpenGL functions are declared
-#define GL_SILENCE_DEPRECATION
-#include <OpenGL/gl3.h>
-#include <OpenGL/gl3ext.h>
-#endif
-// Include GLFW - it will use the OpenGL headers we included above
-#include <GLFW/glfw3.h>
+    #ifdef _WIN32
+        // On Windows use GLEW to load modern OpenGL functions.
+        // GLEW must be included before GLFW.
+        #include <GL/glew.h>
+    #endif
+
+    #ifdef __APPLE__
+        // On macOS, include OpenGL Core Profile headers before GLFW
+        // This ensures all OpenGL functions are declared
+        #define GL_SILENCE_DEPRECATION
+        #include <OpenGL/gl3.h>
+        #include <OpenGL/gl3ext.h>
+    #endif
+    // GLFW will include the appropriate GL headers for the platform
+    #include <GLFW/glfw3.h>
 #else
-// macOS OpenGL includes (fallback)
-#ifdef __APPLE__
-#define GL_SILENCE_DEPRECATION
-#include <OpenGL/gl3.h>
-#include <OpenGL/gl3ext.h>
-#else
-#include <GL/gl.h>
-#include <GL/glu.h>
-#endif
+    // Fallback path without GLFW
+    #ifdef __APPLE__
+        #define GL_SILENCE_DEPRECATION
+        #include <OpenGL/gl3.h>
+        #include <OpenGL/gl3ext.h>
+    #else
+        // On Windows and other platforms without GLFW, use legacy GL headers.
+        // On Windows this resolves to the Windows SDK GL headers.
+        #include <GL/gl.h>
+        #include <GL/glu.h>
+    #endif
 #endif
 
 #include <iostream>
@@ -119,7 +138,18 @@ bool OpenGLRenderer::Initialize(int width, int height, const std::string& title)
     return false; // Cannot proceed without GLFW on macOS
 #endif
 
-    // Initialize shaders
+    // On Windows with GLEW, initialize the function loader now that we have a context.
+#ifdef _WIN32
+    GLenum glewErr = glewInit();
+    if (glewErr != GLEW_OK) {
+        std::cerr << "Failed to initialize GLEW: "
+                  << reinterpret_cast<const char*>(glewGetErrorString(glewErr)) << std::endl;
+        Shutdown();
+        return false;
+    }
+#endif
+
+    // Initialize shaders (desktop GL path)
     if (!InitializeShaders()) {
         std::cerr << "Failed to initialize shaders" << std::endl;
         Shutdown();
@@ -276,6 +306,8 @@ void OpenGLRenderer::BeginFrame() {
 #endif
 
     glClear(GL_COLOR_BUFFER_BIT);
+
+#ifndef _WIN32
     glUseProgram(m_shaderProgram);
 
     // Set screen size uniform
@@ -283,6 +315,7 @@ void OpenGLRenderer::BeginFrame() {
     if (screenSizeLoc >= 0) {
         glUniform2f(screenSizeLoc, static_cast<float>(m_width), static_cast<float>(m_height));
     }
+#endif
 }
 
 void OpenGLRenderer::EndFrame() {
@@ -309,6 +342,21 @@ void OpenGLRenderer::RenderRect(float x, float y, float width, float height, flo
     }
 #endif
 
+    // On Windows, use immediate mode for simplicity / compatibility.
+#ifdef _WIN32
+    glColor4f(r, g, b, a);
+
+    glBegin(GL_TRIANGLES);
+    // First triangle
+    glVertex2f(x, y);
+    glVertex2f(x + width, y);
+    glVertex2f(x + width, y + height);
+    // Second triangle
+    glVertex2f(x, y);
+    glVertex2f(x + width, y + height);
+    glVertex2f(x, y + height);
+    glEnd();
+#else
     // Define rectangle vertices (2 triangles)
     // Each vertex: [x, y, r, g, b, a]
     float vertices[] = {
@@ -345,6 +393,7 @@ void OpenGLRenderer::RenderRect(float x, float y, float width, float height, flo
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glDeleteBuffers(1, &EBO);
+#endif
 }
 
 void OpenGLRenderer::RenderText(float x, float y, const std::string& text) {

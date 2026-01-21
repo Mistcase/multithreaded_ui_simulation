@@ -17,6 +17,11 @@ if(NOT glfw3_FOUND)
     message(STATUS "GLFW not found, using system OpenGL")
 endif()
 
+# On Windows we use GLEW to load modern OpenGL functions (VAO/VBO, shaders, etc.)
+if(WIN32)
+    find_package(GLEW REQUIRED)
+endif()
+
 file(GLOB_RECURSE SRC_FILES
     "${CMAKE_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_SOURCE_DIR}/src/*.h"
@@ -26,7 +31,7 @@ add_executable(ui_sandbox
     ${SRC_FILES}
 )
 
-# Link GLFW and OpenGL
+// Link GLFW and OpenGL
 if(glfw3_FOUND)
     target_link_libraries(ui_sandbox glfw)
     target_compile_definitions(ui_sandbox PRIVATE USE_GLFW)
@@ -36,6 +41,10 @@ endif()
 target_link_libraries(ui_sandbox 
     OpenGL::GL
 )
+
+if(WIN32)
+    target_link_libraries(ui_sandbox GLEW::GLEW)
+endif()
 
 # macOS specific frameworks (required for GLFW and OpenGL)
 if(APPLE)
