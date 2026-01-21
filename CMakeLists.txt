@@ -19,6 +19,7 @@ endif()
 
 file(GLOB_RECURSE SRC_FILES
     "${CMAKE_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_SOURCE_DIR}/src/*.h"
 )
 
 add_executable(ui_sandbox

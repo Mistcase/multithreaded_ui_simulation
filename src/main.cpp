@@ -37,7 +37,7 @@ int main() {
         
         // Check if 5 seconds have passed
         auto elapsed = std::chrono::steady_clock::now() - startTime;
-        if (std::chrono::duration_cast<std::chrono::seconds>(elapsed).count() >= 5) {
+        if (std::chrono::duration_cast<std::chrono::seconds>(elapsed).count() >= 15) {
             running = false;
             break;
         }

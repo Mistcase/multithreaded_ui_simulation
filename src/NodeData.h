@@ -24,7 +24,6 @@ struct ContainerNodeData {
     float y = 0.0f;
     bool visible = true;
     bool deleted = false;  // Mark for deletion
-    bool invalidateCommandsCache = false; // Invalidate render commands cache on flush
     std::vector<NodeId> children;
     RenderContainerNode* render = nullptr;
 
@@ -37,7 +36,6 @@ struct TextNodeData {
     float y = 0.0f;
     bool visible = true;
     bool deleted = false;  // Mark for deletion
-    bool invalidateCommandsCache = false; // Invalidate render commands cache on flush
     std::string text;
     RenderTextNode* render = nullptr;
 
@@ -50,7 +48,6 @@ struct ShapeNodeData {
     float y = 0.0f;
     bool visible = true;
     bool deleted = false;  // Mark for deletion
-    bool invalidateCommandsCache = false; // Invalidate render commands cache on flush
     RenderShapeNode* render = nullptr;
 
     void Flush(RenderContext& ctx);
@@ -62,7 +59,6 @@ struct ShapeRectNodeData {
     float y = 0.0f;
     bool visible = true;
     bool deleted = false;  // Mark for deletion
-    bool invalidateCommandsCache = false; // Invalidate render commands cache on flush
     float width = 0.0f;
     float height = 0.0f;
     RenderShapeRectNode* render = nullptr;
