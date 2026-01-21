@@ -12,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <thread>
+#include <string>
 #include <vector>
 
 namespace ui {
@@ -125,6 +126,10 @@ private:
             return;
         }
 
+        // Rebuild command buffer from scratch under render mutex to avoid
+        // unsynchronized access later in ExecuteRenderCommands.
+        m_renderCommands.clear();
+
         // DFS without map lookups: use already resolved child pointers
         std::vector<const RenderContainerNode*> stack;
         stack.push_back(rootRender);
@@ -143,13 +148,24 @@ private:
                 // Try text node
                 const RenderTextNode* text = ctx.TryGetRenderNode<TextNodeData>(childId);
                 if (text && text->visible) {
-                    m_renderCommands.push_back({RenderCommand::Type::Text, childId});
+                    RenderCommand cmd{};
+                    cmd.type = RenderCommand::Type::Text;
+                    cmd.textPayload.x = text->x;
+                    cmd.textPayload.y = text->y;
+                    cmd.textPayload.text = text->text;
+                    m_renderCommands.push_back(std::move(cmd));
                 }
 
                 // Try shape rect node
                 const RenderShapeRectNode* shapeRect = ctx.TryGetRenderNode<ShapeRectNodeData>(childId);
                 if (shapeRect && shapeRect->visible) {
-                    m_renderCommands.push_back({RenderCommand::Type::ShapeRect, childId});
+                    RenderCommand cmd{};
+                    cmd.type = RenderCommand::Type::ShapeRect;
+                    cmd.shapeRectPayload.x = shapeRect->x;
+                    cmd.shapeRectPayload.y = shapeRect->y;
+                    cmd.shapeRectPayload.width = shapeRect->width;
+                    cmd.shapeRectPayload.height = shapeRect->height;
+                    m_renderCommands.push_back(std::move(cmd));
                 }
 
                 // If all are nullptr: node was deleted, skip it
@@ -164,21 +180,21 @@ private:
 
         m_renderer.BeginFrame();
 
-        auto& ctx = RenderContext::Instance();
         for (const auto& cmd : m_renderCommands) {
             switch (cmd.type) {
                 case RenderCommand::Type::Text: {
-                    const RenderTextNode* text = ctx.TryGetRenderNode<TextNodeData>(cmd.nodeId);
-                    if (text) {
-                        m_renderer.RenderText(text->x, text->y, text->text);
-                    }
+                    m_renderer.RenderText(cmd.textPayload.x, cmd.textPayload.y, cmd.textPayload.text);
                     break;
                 }
                 case RenderCommand::Type::ShapeRect: {
-                    const RenderShapeRectNode* rect = ctx.TryGetRenderNode<ShapeRectNodeData>(cmd.nodeId);
-                    if (rect && rect->width > 0.0f && rect->height > 0.0f) {
+                    if (cmd.shapeRectPayload.width > 0.0f && cmd.shapeRectPayload.height > 0.0f) {
                         // Use bright cyan color for visibility
-                        m_renderer.RenderRect(rect->x, rect->y, rect->width, rect->height, 0.0f, 1.0f, 1.0f, 1.0f);
+                        m_renderer.RenderRect(
+                            cmd.shapeRectPayload.x,
+                            cmd.shapeRectPayload.y,
+                            cmd.shapeRectPayload.width,
+                            cmd.shapeRectPayload.height,
+                            0.0f, 1.0f, 1.0f, 1.0f);
                     }
                     break;
                 }
@@ -197,7 +213,21 @@ private:
             ShapeRect
         };
         Type type;
-        NodeId nodeId;
+        struct TextPayload {
+            float x = 0.0f;
+            float y = 0.0f;
+            std::string text;
+        };
+        struct ShapeRectPayload {
+            float x = 0.0f;
+            float y = 0.0f;
+            float width = 0.0f;
+            float height = 0.0f;
+        };
+
+        // Only one of the payloads is used depending on type.
+        TextPayload textPayload;
+        ShapeRectPayload shapeRectPayload;
     };
 
     std::atomic<bool> m_running;
