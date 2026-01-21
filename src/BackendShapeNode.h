@@ -17,11 +17,15 @@ public:
         auto& data = RenderContext::Instance().AccessData<ShapeNodeData>(m_id);
         data.x = x;
         data.y = y;
+        data.invalidateCommandsCache = true;
+        InvalidateCacheUpwards();
     }
 
     void SetVisible(bool v) override {
         auto& data = RenderContext::Instance().AccessData<ShapeNodeData>(m_id);
         data.visible = v;
+        data.invalidateCommandsCache = true;
+        InvalidateCacheUpwards();
     }
 
     void Term() override {
@@ -29,6 +33,8 @@ public:
         // On Sync, the render node will be removed
         auto& data = RenderContext::Instance().AccessData<ShapeNodeData>(m_id);
         data.deleted = true;
+        data.invalidateCommandsCache = true;
+        InvalidateCacheUpwards();
     }
 };
 

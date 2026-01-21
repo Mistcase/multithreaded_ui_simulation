@@ -47,6 +47,8 @@ public:
         }
     }
 
+    TreeNode* Backend() const { return m_backend.get(); }
+
 protected:
     std::unique_ptr<TreeNode> m_backend;
 };
@@ -55,10 +57,10 @@ class FrontendContainer : public FrontendNode {
 public:
     // Factory method: creates backend and frontend, returns frontend
     static std::unique_ptr<FrontendContainer> Create(NodeId id);
-    
+
     explicit FrontendContainer(std::unique_ptr<BackendContainerNode> backend);
-    
-    void AddChild(NodeId childId);
+
+    void AddChild(FrontendNode* child);
 
 private:
     BackendContainerNode* m_containerBackend;  // Cached pointer to BackendContainerNode
@@ -68,9 +70,9 @@ class FrontendText : public FrontendNode {
 public:
     // Factory method: creates backend and frontend, returns frontend
     static std::unique_ptr<FrontendText> Create(NodeId id);
-    
+
     explicit FrontendText(std::unique_ptr<BackendTextNode> backend);
-    
+
     void SetText(const std::string& text);
 
 private:
@@ -81,7 +83,7 @@ class FrontendShape : public FrontendNode {
 public:
     // Factory method: creates backend and frontend, returns frontend
     static std::unique_ptr<FrontendShape> Create(NodeId id);
-    
+
     explicit FrontendShape(std::unique_ptr<BackendShapeNode> backend);
 
 private:
@@ -92,9 +94,9 @@ class FrontendShapeRect : public FrontendShape {
 public:
     // Factory method: creates backend and frontend, returns frontend
     static std::unique_ptr<FrontendShapeRect> Create(NodeId id);
-    
+
     explicit FrontendShapeRect(std::unique_ptr<BackendShapeRectNode> backend);
-    
+
     void SetWidth(float width);
     void SetHeight(float height);
 

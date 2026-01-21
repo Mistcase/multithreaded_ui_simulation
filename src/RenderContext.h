@@ -23,11 +23,35 @@ struct RenderTextNode;
 struct RenderShapeNode;
 struct RenderShapeRectNode;
 
+// Render command shared between render nodes and command buffer.
+struct RenderCommand {
+    enum class Type {
+        Text,
+        ShapeRect
+    };
+    Type type{Type::Text};
+    struct TextPayload {
+        float x = 0.0f;
+        float y = 0.0f;
+        std::string text;
+    };
+    struct ShapeRectPayload {
+        float x = 0.0f;
+        float y = 0.0f;
+        float width = 0.0f;
+        float height = 0.0f;
+    };
+    TextPayload textPayload;
+    ShapeRectPayload shapeRectPayload;
+};
+
 struct RenderContainerNode {
     float x = 0.0f;
     float y = 0.0f;
     bool visible = true;
     std::vector<NodeId> children;  // Store only NodeId, resolve type dynamically
+    std::vector<RenderCommand> cachedCommands;
+    bool isCommandsCacheValid = false;
 };
 
 struct RenderTextNode {
@@ -35,6 +59,8 @@ struct RenderTextNode {
     float y = 0.0f;
     bool visible = true;
     std::string text;
+    std::vector<RenderCommand> cachedCommands;
+    bool isCommandsCacheValid = false;
 };
 
 struct RenderShapeNode {
@@ -49,6 +75,8 @@ struct RenderShapeRectNode {
     bool visible = true;
     float width = 0.0f;
     float height = 0.0f;
+    std::vector<RenderCommand> cachedCommands;
+    bool isCommandsCacheValid = false;
 };
 
 // Traits for mapping NodeData types to RenderNode types and storage
@@ -209,7 +237,7 @@ private:
     // Uses static variable to ensure registration happens only once per type
     template <typename T>
     void RegisterTypeHandler() {
-        static bool registered = []() {
+        [[maybe_unused]] static bool registered = []() {
             // Register handler - will be added to instance's handler list
             // Note: Since this is called from instance method, Instance() is safe
             RenderContext& instance = Instance();
@@ -218,7 +246,6 @@ private:
             });
             return true;
         }();
-        (void)registered; // Suppress unused variable warning
     }
 
     // Call all registered type handlers

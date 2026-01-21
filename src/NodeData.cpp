@@ -10,6 +10,10 @@ void ContainerNodeData::Flush(RenderContext& ctx) {
     r->x = x;
     r->y = y;
     r->visible = visible;
+    if (invalidateCommandsCache) {
+        r->isCommandsCacheValid = false;
+        invalidateCommandsCache = false;
+    }
 
     // Copy children - both use NodeId now
     r->children = children;
@@ -23,6 +27,10 @@ void TextNodeData::Flush(RenderContext& ctx) {
     r->y = y;
     r->visible = visible;
     r->text = text;
+    if (invalidateCommandsCache) {
+        r->isCommandsCacheValid = false;
+        invalidateCommandsCache = false;
+    }
 }
 
 void ShapeNodeData::Flush(RenderContext& ctx) {
@@ -32,6 +40,9 @@ void ShapeNodeData::Flush(RenderContext& ctx) {
     r->x = x;
     r->y = y;
     r->visible = visible;
+    if (invalidateCommandsCache) {
+        invalidateCommandsCache = false;
+    }
 }
 
 void ShapeRectNodeData::Flush(RenderContext& ctx) {
@@ -43,6 +54,10 @@ void ShapeRectNodeData::Flush(RenderContext& ctx) {
     r->visible = visible;
     r->width = width;
     r->height = height;
+    if (invalidateCommandsCache) {
+        r->isCommandsCacheValid = false;
+        invalidateCommandsCache = false;
+    }
 }
 
 } // namespace ui

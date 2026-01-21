@@ -15,9 +15,9 @@ FrontendContainer::FrontendContainer(std::unique_ptr<BackendContainerNode> backe
     : FrontendNode(std::move(backend))
     , m_containerBackend(static_cast<BackendContainerNode*>(FrontendNode::m_backend.get())) {}
 
-void FrontendContainer::AddChild(NodeId childId) {
-    if (m_containerBackend) {
-        m_containerBackend->AddChild(childId);
+void FrontendContainer::AddChild(FrontendNode* child) {
+    if (m_containerBackend && child->Backend()) {
+        m_containerBackend->AddChild(child->Backend());
     }
 }
 

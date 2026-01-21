@@ -12,7 +12,6 @@
 #include <iostream>
 #include <memory>
 #include <thread>
-#include <string>
 #include <vector>
 
 namespace ui {
@@ -33,7 +32,7 @@ public:
         m_root = FrontendContainer::Create(m_rootId);
         m_rect = FrontendShapeRect::Create(m_rectId);
 
-        m_root->AddChild(m_rectId);
+        m_root->AddChild(m_rect.get());
 
         m_root->SetPosition(0.0f, 0.0f);
         m_rect->SetPosition(10.0f, 20.0f);
@@ -55,7 +54,7 @@ public:
     void Update() {
         TRACE_SCOPE("Movie::Update");
         SimulateScriptLanguageProcessing();
-        
+
         if (!m_root)
             return;
 
@@ -64,12 +63,12 @@ public:
         static int frameCount = 0;
         frameCount++;
         x += 1.0f;
-        
+
         if (m_rect)
         {
             m_rect->SetPosition(x, 20.0f);
         }
-        
+
         // Example: delete text node after 3 frames
         if (frameCount == 3 && m_rect) {
             m_rect->Term();
@@ -120,6 +119,7 @@ public:
 private:
     void CollectRenderCommands() {
         TRACE_SCOPE("Movie::CollectRenderCommands");
+
         auto& ctx = RenderContext::Instance();
         auto* rootRender = ctx.TryGetRenderNode<ContainerNodeData>(m_rootId);
         if (!rootRender) {
@@ -130,47 +130,73 @@ private:
         // unsynchronized access later in ExecuteRenderCommands.
         m_renderCommands.clear();
 
-        // DFS without map lookups: use already resolved child pointers
-        std::vector<const RenderContainerNode*> stack;
-        stack.push_back(rootRender);
-        while (!stack.empty()) {
-            const RenderContainerNode* node = stack.back();
-            stack.pop_back();
-
-            for (NodeId childId : node->children) {
-                // Try container first (most common case for tree traversal)
-                const RenderContainerNode* container = ctx.TryGetRenderNode<ContainerNodeData>(childId);
-                if (container) {
-                    stack.push_back(container);
-                    continue;
-                }
-
-                // Try text node
-                const RenderTextNode* text = ctx.TryGetRenderNode<TextNodeData>(childId);
-                if (text && text->visible) {
-                    RenderCommand cmd{};
-                    cmd.type = RenderCommand::Type::Text;
-                    cmd.textPayload.x = text->x;
-                    cmd.textPayload.y = text->y;
-                    cmd.textPayload.text = text->text;
-                    m_renderCommands.push_back(std::move(cmd));
-                }
-
-                // Try shape rect node
-                const RenderShapeRectNode* shapeRect = ctx.TryGetRenderNode<ShapeRectNodeData>(childId);
-                if (shapeRect && shapeRect->visible) {
-                    RenderCommand cmd{};
-                    cmd.type = RenderCommand::Type::ShapeRect;
-                    cmd.shapeRectPayload.x = shapeRect->x;
-                    cmd.shapeRectPayload.y = shapeRect->y;
-                    cmd.shapeRectPayload.width = shapeRect->width;
-                    cmd.shapeRectPayload.height = shapeRect->height;
-                    m_renderCommands.push_back(std::move(cmd));
-                }
-
-                // If all are nullptr: node was deleted, skip it
+        auto collectLeafCommands = [&](RenderTextNode* text) -> const std::vector<RenderCommand>& {
+            if (!text->isCommandsCacheValid) {
+                text->cachedCommands.clear();
+                RenderCommand cmd{};
+                cmd.type = RenderCommand::Type::Text;
+                cmd.textPayload.x = text->x;
+                cmd.textPayload.y = text->y;
+                cmd.textPayload.text = text->text;
+                text->cachedCommands.push_back(std::move(cmd));
+                text->isCommandsCacheValid = true;
             }
-        }
+            return text->cachedCommands;
+        };
+
+        auto collectShapeRectCommands = [&](RenderShapeRectNode* rect) -> const std::vector<RenderCommand>& {
+            if (!rect->isCommandsCacheValid) {
+                rect->cachedCommands.clear();
+                RenderCommand cmd{};
+                cmd.type = RenderCommand::Type::ShapeRect;
+                cmd.shapeRectPayload.x = rect->x;
+                cmd.shapeRectPayload.y = rect->y;
+                cmd.shapeRectPayload.width = rect->width;
+                cmd.shapeRectPayload.height = rect->height;
+                rect->cachedCommands.push_back(std::move(cmd));
+                rect->isCommandsCacheValid = true;
+            }
+            return rect->cachedCommands;
+        };
+
+        std::function<void(RenderContainerNode*, std::vector<RenderCommand>&)> collectFromContainer =
+            [&](RenderContainerNode* node, std::vector<RenderCommand>& out) {
+                if (node->isCommandsCacheValid) {
+                    out.insert(out.end(), node->cachedCommands.begin(), node->cachedCommands.end());
+                    return;
+                }
+
+                node->cachedCommands.clear();
+                for (NodeId childId : node->children) {
+                    if (auto* container = ctx.TryGetRenderNode<ContainerNodeData>(childId)) {
+                        collectFromContainer(container, node->cachedCommands);
+                        continue;
+                    }
+
+                    if (auto* text = ctx.TryGetRenderNode<TextNodeData>(childId)) {
+                        if (text->visible) {
+                            const auto& cmds = collectLeafCommands(text);
+                            node->cachedCommands.insert(node->cachedCommands.end(), cmds.begin(), cmds.end());
+                        }
+                        continue;
+                    }
+
+                    if (auto* shapeRect = ctx.TryGetRenderNode<ShapeRectNodeData>(childId)) {
+                        if (shapeRect->visible && shapeRect->width > 0.0f && shapeRect->height > 0.0f) {
+                            const auto& cmds = collectShapeRectCommands(shapeRect);
+                            node->cachedCommands.insert(node->cachedCommands.end(), cmds.begin(), cmds.end());
+                        }
+                        continue;
+                    }
+
+                    // If all are nullptr: node was deleted, skip it
+                }
+
+                node->isCommandsCacheValid = true;
+                out.insert(out.end(), node->cachedCommands.begin(), node->cachedCommands.end());
+            };
+
+        collectFromContainer(rootRender, m_renderCommands);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(120));
     }
@@ -206,30 +232,6 @@ private:
     }
 
 private:
-    // Render command structure
-    struct RenderCommand {
-        enum class Type {
-            Text,
-            ShapeRect
-        };
-        Type type;
-        struct TextPayload {
-            float x = 0.0f;
-            float y = 0.0f;
-            std::string text;
-        };
-        struct ShapeRectPayload {
-            float x = 0.0f;
-            float y = 0.0f;
-            float width = 0.0f;
-            float height = 0.0f;
-        };
-
-        // Only one of the payloads is used depending on type.
-        TextPayload textPayload;
-        ShapeRectPayload shapeRectPayload;
-    };
-
     std::atomic<bool> m_running;
 
     NodeId m_rootId;
